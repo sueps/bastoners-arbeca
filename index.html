@@ -124,11 +124,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .iolist .item{display:flex;justify-content:space-between;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;flex-wrap:wrap}
 .iolist .item.cur{border-color:var(--olive)}
 [hidden]{display:none!important}
-#btnPassos{display:none}
-@media (max-width:1100px){#btnPassos{display:inline-flex}}
 body.nopassos .panel{display:none}
 body.nopassos .layout{grid-template-columns:minmax(0,1fr)}
-@media (max-width:1100px) and (orientation:landscape){body.nopassos .views{grid-template-columns:2fr 1fr}}
+@media (orientation:landscape),(min-width:700px){body.nopassos .views{grid-template-columns:2fr 1fr}}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media (prefers-reduced-motion: reduce){*{scroll-behavior:auto}}
 </style>
