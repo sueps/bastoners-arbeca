@@ -127,6 +127,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 body.nopassos .panel{display:none}
 body.nopassos .layout{grid-template-columns:minmax(0,1fr)}
 body.nopassos .views{grid-template-columns:1fr}
+body.nopassos #zen,body.nopassos #front{height:calc(50vh - 80px);aspect-ratio:auto}
+@media (orientation:landscape){body.nopassos .views{grid-template-columns:1fr 1fr}
+  body.nopassos #zen,body.nopassos #front{height:calc(100vh - 130px);min-height:180px}}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media (prefers-reduced-motion: reduce){*{scroll-behavior:auto}}
 </style>
