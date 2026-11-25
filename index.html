@@ -1,0 +1,1089 @@
+<title>Bastoners d'Arbeca</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: escenari (zenital + jutges) a l'esquerra, panell de pestanyes a la dreta, barra de reproducció fixa a baix. */
+:root{
+  --bg:#eef0e8; --surface:#fafbf6; --sunk:#e3e6da; --ink:#1c2015; --muted:#5d6553; --line:#cfd4c2;
+  --olive:#4c6224; --wood:#9a5f25; --faixa:#bf3326; --floor:#f6f4ec; --grid:#e2e0d4;
+  --c1:#4c6224; --c2:#9a5f25; --c3:#2f6690; --c4:#8a3c7a; --c5:#b8862a; --c6:#3d7c6c; --c7:#5b4fb0; --c8:#596069;
+  --warn-bg:#fbecc8; --warn-ink:#6b4a00;
+  --f-display:"Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --f-text:"Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11130e; --surface:#1a1d15; --sunk:#23271d; --ink:#e7eadf; --muted:#a2a993; --line:#333a2a;
+  --olive:#a3bd5f; --wood:#dc9e5c; --faixa:#ff6a59; --floor:#1d2118; --grid:#2a2f22;
+  --c1:#a3bd5f; --c2:#dc9e5c; --c3:#6fb0e0; --c4:#d38ac3; --c5:#e6bf5c; --c6:#6cc2ad; --c7:#a99ef2; --c8:#b9bfc7;
+  --warn-bg:#3a2f12; --warn-ink:#f1d48a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11130e; --surface:#1a1d15; --sunk:#23271d; --ink:#e7eadf; --muted:#a2a993; --line:#333a2a;
+  --olive:#a3bd5f; --wood:#dc9e5c; --faixa:#ff6a59; --floor:#1d2118; --grid:#2a2f22;
+  --c1:#a3bd5f; --c2:#dc9e5c; --c3:#6fb0e0; --c4:#d38ac3; --c5:#e6bf5c; --c6:#6cc2ad; --c7:#a99ef2; --c8:#b9bfc7;
+  --warn-bg:#3a2f12; --warn-ink:#f1d48a; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--f-text);font-size:14px;line-height:1.45;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 24px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;min-height:34px}
+button:hover{border-color:var(--muted)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--faixa);outline-offset:2px}
+button.primary{background:var(--olive);border-color:var(--olive);color:var(--surface);font-weight:600}
+button.danger{color:var(--faixa)}
+button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+input,select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;min-height:34px;min-width:0}
+textarea{width:100%;resize:vertical}
+label{display:inline-flex;gap:6px;align-items:center}
+.top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding-block:14px 10px}
+.brand{display:flex;gap:12px;align-items:center;min-width:0}
+.brand svg{flex:none}
+.brand h1{font-size:22px;letter-spacing:-.01em;line-height:1.1}
+.brand .sub{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+.topctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#ballSel{max-width:240px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.stage{display:grid;gap:12px;min-width:0}
+.views{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:1200px){.views{grid-template-columns:1fr}}
+.viewhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.viewhead h2{font-size:15px}
+.audrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.audrow input[data-a=nom]{flex:1;min-width:120px}
+.filebtn span{display:inline-block;padding:6px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--surface)}
+.audwrap select{max-width:150px}
+.camsel{display:flex;gap:4px;flex-wrap:wrap}
+.camsel button{font:inherit;font-size:12px;padding:4px 9px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.camsel button[aria-pressed=true]{background:var(--faixa);border-color:var(--faixa);color:var(--surface);font-weight:600}
+.viewhead .opts{display:flex;gap:12px;color:var(--muted);font-size:13px;flex-wrap:wrap}
+#zen{width:100%;height:auto;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
+#front{width:100%;aspect-ratio:16/9;display:block;max-width:100%}
+.now{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}
+.now .fig{font-family:var(--f-display);font-size:20px;font-weight:700}
+.now .meta{color:var(--muted);font-size:13px}
+.bigcop{text-align:right}
+.bigcop .k{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.bigcop .v{font-family:var(--f-display);font-size:30px;font-weight:700;line-height:1;color:var(--faixa)}
+.bigcop .n{font-size:13px;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:12px;background:var(--sunk);white-space:nowrap}
+.chip.cur{background:var(--faixa);border-color:var(--faixa);color:var(--surface);font-weight:600}
+.chip.combi{border-style:dashed}
+.chip .rapid{font-size:.7em;font-weight:700;color:var(--faixa);margin-left:2px}
+.chip.cur .rapid{color:var(--surface)}
+.chip.warn{background:var(--warn-bg);color:var(--warn-ink);border-color:transparent}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--line);margin:-12px -12px 12px;padding:6px 6px 0}
+.tabs button{border:0;border-radius:8px 8px 0 0;background:transparent;color:var(--muted);font-weight:500;white-space:nowrap}
+.tabs button[aria-selected="true"]{background:var(--sunk);color:var(--ink);font-weight:600}
+.panel{position:sticky;top:76px;max-height:calc(100vh - 90px);overflow:auto}
+@media (max-width:900px){.panel{position:static;max-height:none}}
+.stack{display:grid;gap:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row > input,.row > select{flex:1 1 90px}
+.lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.hint{font-size:12px;color:var(--muted)}
+.figlist{display:grid;gap:6px;list-style:none;margin:0;padding:0}
+.figlist li{border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;display:grid;gap:4px}
+.figlist li.acte{border:0;padding:8px 2px 0;cursor:default;font-family:var(--f-display);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--olive)}
+.figlist li.cur{border-color:var(--olive);box-shadow:inset 3px 0 0 var(--olive)}
+.figlist .t{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.figlist .t b{font-family:var(--f-display)}
+.figlist .t span{font-family:var(--f-mono);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.note{font-size:12px;color:var(--warn-ink);background:var(--warn-bg);border-radius:8px;padding:6px 8px}
+table{border-collapse:collapse;width:100%}
+td,th{padding:4px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;font-size:13px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+td input{width:100%}
+.tablewrap{overflow-x:auto}
+hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+.transport{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:8px 10px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;box-shadow:0 4px 12px -8px rgba(0,0,0,.25)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.transport #scrub{flex:1 1 200px;accent-color:var(--faixa);min-height:auto}
+.transport .clock{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:13px;min-width:150px}
+#btnPlay{min-width:84px}
+.bpm{width:70px}
+@media (max-width:600px){
+  .transport{gap:8px}
+  .transport #scrub{order:-1;flex:1 1 100%}
+  .transport .clock{min-width:0;font-size:12px}
+  .transport .bpmwrap{display:none}
+}
+.editbanner{background:var(--ink);color:var(--surface);border-radius:8px;padding:6px 10px;font-size:13px}
+.copdef{border-bottom:1px solid var(--line);padding-block:8px;display:grid;gap:4px}
+.copdef b{font-family:var(--f-display);font-size:15px}
+.iolist{display:grid;gap:6px}
+.iolist .item{display:flex;justify-content:space-between;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;flex-wrap:wrap}
+.iolist .item.cur{border-color:var(--olive)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto}}
+</style>
+
+<header class="top">
+  <div class="brand">
+    <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
+      <rect x="1" y="1" width="38" height="38" rx="10" fill="var(--olive)"/>
+      <line x1="10" y1="30" x2="28" y2="9" stroke="var(--surface)" stroke-width="3.2" stroke-linecap="round"/>
+      <line x1="30" y1="30" x2="12" y2="9" stroke="var(--wood)" stroke-width="3.2" stroke-linecap="round"/>
+      <circle cx="20" cy="18.5" r="2.6" fill="var(--faixa)"/>
+    </svg>
+    <div><div class="sub">Bastoners Adults</div><h1>Bastoners d'Arbeca</h1></div>
+  </div>
+  <div class="topctl">
+    <label class="sr" for="ballSel">Ball</label>
+    <select id="ballSel"></select>
+    <button id="btnEdit" aria-pressed="false">Edita</button>
+  </div>
+</header>
+<div class="transport" id="transport">
+  <button id="btnPrev" aria-label="Figura anterior">⏮</button>
+  <button id="btnBack" aria-label="Un temps enrere" title="Un temps enrere">◀ 1</button>
+  <button id="btnPlay" class="primary">▶ Play</button>
+  <button id="btnFwd" aria-label="Un temps endavant" title="Un temps endavant">1 ▶</button>
+  <button id="btnNext" aria-label="Figura següent">⏭</button>
+  <label class="sr" for="scrub">Posició</label>
+  <input type="range" id="scrub" min="0" max="100" step="0.01" value="0">
+  <span class="clock" id="clock">Compàs 1 · temps 1</span>
+  <label title="Temps per minut" class="bpmwrap"><input type="number" id="bpm" class="bpm" min="30" max="240" step="0.1"> bpm</label>
+  <label><input type="checkbox" id="chkClick"> Metrònom</label>
+  <label class="audwrap" title="Àudio que sona amb el ball">♪ <select id="audSel" aria-label="Àudio"></select></label>
+</div>
+
+<main class="layout">
+  <section class="stage">
+    <div class="views">
+      <div class="card">
+        <div class="viewhead"><h2>Vista zenital</h2>
+          <div class="opts">
+            <label><input type="checkbox" id="chkNames"> Noms</label>
+            <label class="sr" for="repSel">Repartiment</label><select id="repSel" hidden style="min-height:28px;padding:2px 6px;font-size:13px"></select>
+            <label><input type="checkbox" id="chkPaths" checked> Trajectòries</label>
+          </div>
+        </div>
+        <svg id="zen" role="img" aria-label="Vista des de dalt de l'espai de ball"></svg>
+      </div>
+      <div class="card">
+        <div class="viewhead"><h2>Vista 3D</h2><div class="camsel" id="camSel" role="group" aria-label="Càmera"></div></div>
+        <canvas id="front" aria-label="Vista 3D dels balladors" style="touch-action:pan-y"></canvas>
+        <div class="hint" style="margin-top:4px">Arrossega la vista per girar la càmera.</div>
+      </div>
+    </div>
+    <div class="card now" id="nowCard"></div>
+  </section>
+
+  <aside class="card panel">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div id="panelBody"></div>
+  </aside>
+</main>
+
+
+
+<script>
+/* ===================================================================
+   MODEL DE DADES (pensat per passar a Supabase més endavant)
+   ---------------------------------------------------------------
+   taula cops          { id, nom, sol, descripcio }            -> catàleg compartit
+   taula combinacions  { id, nom, seq:[tokens] }               -> catàleg compartit
+   taula balls         { id, nom, dades: jsonb (veure sota), actualitzat, autor }
+   ball.dades = {
+     musica:{ bpm, tempsPerCompas, audioActiu, audios:[{ id, nom, src|idb, inici (s on cau el temps 0), bpm }] },
+                                         // amb Supabase: els fitxers d'àudio aniran a Storage (src = URL pública)
+     espai:{ ample, fons }               // metres; els jutges són a la banda de "fons"
+     balladors:[{ id, posicio, nom, color }],
+     figures:[{
+       id, nom, nota, dubtos,
+       mou:{ temps, picades },           // desplaçament des de la figura anterior
+       pos:{ [idBallador]: { x, y, o, tipus:'lineal'|'arc'|'gir', costat:null|'dreta'|'esquerra', graus } },
+       seq:[tokens],                      // seqüència de cops per a tothom
+       seqPer:{ [idBallador]:[tokens] }   // excepcions per ballador
+     }]
+   }
+   token = "nomCop" | "nomCombinació" | "nomCop+moviment de peus" | "pausa"
+   Orientació o: 0 = mira als jutges, 90 = mira a la dreta (dels jutges), 180 = d'esquena, 270 = esquerra.
+   =================================================================== */
+
+const COPS0 = [
+  {id:'terra', nom:'Terra', sol:true, descripcio:"Ajupit (cames juntes, sense arribar a sentadilla). Piques els dos bastons al terra davant dels teus peus."},
+  {id:'baix', nom:'Baix', sol:false, descripcio:"De peu. Piques amb la mà esquerra, per sota de la cintura, amb la cara externa del bastó esquerre contra el bastó esquerre del company del davant (esquerra amb esquerra)."},
+  {id:'davant', nom:'Davant', sol:false, descripcio:"Els teus dos bastons, puntes juntes, piquen al terra contra els del company del davant (també puntes juntes)."},
+  {id:'mig', nom:'Mig', sol:true, descripcio:"Piques els teus dos bastons entre ells, davant teu, a l'altura de la cintura."},
+  {id:'dalt', nom:'Dalt', sol:false, descripcio:"Piques el bastó dret amb el bastó dret del company per damunt del cap. Pot anar amb saltiró i crit (HEYY!): escriu «dalt+saltiró» quan toqui."},
+  {id:'doble', nom:'Doble', sol:false, descripcio:"De peu, bastons creuats davant la cara, piquen contra els bastons creuats del company del davant."},
+  {id:'sotacama', nom:'Sotacama', sol:false, descripcio:"Passa endavant amb la cama dreta fins a quedar a l'altura del company, aixeques la cama esquerra i passes el bastó dret per sota. Piqueu."},
+  {id:'pausa', nom:'Pausa', sol:true, descripcio:"Temps sense picar."}
+];
+const COMBIS0 = [{id:'lluita', nom:'Lluita', seq:['mig','baix','dalt','baix','dalt'], temps:0.75, mantenir:true},
+  {id:'creuat', nom:'El creuat', seq:['mig','dalt','mig','baix','mig','doble'], temps:0.75}];
+
+const uid = p => (p||'id') + '_' + Math.random().toString(36).slice(2,9);
+const clone = o => JSON.parse(JSON.stringify(o));
+const norm = s => (s||'').toString().trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+
+function exampleBall(){
+  const balladors = [];
+  for (let i=1;i<=4;i++) balladors.push({id:'A'+i, posicio:'A'+i, nom:'', color:'c'+i});
+  for (let i=1;i<=4;i++) balladors.push({id:'B'+i, posicio:'B'+i, nom:'', color:'c'+(i+4)});
+  const xs = i => [0,2.6,3.8,6.2,7.4][i];
+  // Dos quadrats (parelles 1-2 i 3-4) que fan exactament el mateix alhora.
+  const base = () => { const p={}; for(let i=1;i<=4;i++){ p['A'+i]={x:xs(i),y:3.2,o:0}; p['B'+i]={x:xs(i),y:4.8,o:180}; } return p; };
+  // Intercanvi dins la parella (es creuen per l'espatlla dreta) + gir de 90° per quedar cara a cara amb el del costat.
+  const girO = i => (i%2===1) ? 90 : 270;   // columna de fora mira cap a dins i viceversa
+  const swapped = () => { const p={}; for(let i=1;i<=4;i++){ p['A'+i]={x:xs(i),y:4.8,o:girO(i),tipus:'arc',costat:'esquerra'}; p['B'+i]={x:xs(i),y:3.2,o:girO(i),tipus:'arc',costat:'esquerra'}; } return p; };
+  const spin = (src) => { const p=clone(src); for(const k in p){ p[k].tipus='gir'; p[k].costat='dreta'; p[k].graus=360; } return p; };
+  const still = (src) => { const p=clone(src); for(const k in p){ delete p[k].tipus; delete p[k].costat; delete p[k].graus; } return p; };
+  const F = (nom, o) => Object.assign({id:uid('f'), nom, nota:'', dubtos:false, mou:{temps:0,picades:0}, pos:{}, seq:[], seqPer:{}}, o);
+  const SEQ = ['mig','dalt','mig','baix','mig','dalt','mig+cama dreta endavant','sotacama'];
+  const b0 = base();
+  // Volta al quadrat: alternen intercanvi en columna i en fila (amb gir de 90°) fins tornar a la posició inicial.
+  const YT=3.2, YB=4.8, leftCol = x => Math.abs(x-xs(1))<0.01 || Math.abs(x-xs(3))<0.01;
+  const swapStep = (src, kind, noTurn) => { const p={}; for(const k in src){ const q=src[k]; let x=q.x, y=q.y, o;
+      if(kind==='col'){ y = Math.abs(y-YT)<0.01 ? YB : YT; o = leftCol(x) ? 90 : 270; }
+      else { const right = leftCol(x); x = right ? x+1.2 : x-1.2; x=Math.round(x*10)/10; const inner = Math.abs(x-xs(2))<0.01 || Math.abs(x-xs(3))<0.01; o = (noTurn && inner) ? (right?90:270) : (Math.abs(y-YT)<0.01 ? 0 : 180); }
+      p[k]={x,y,o,tipus:'arc',costat:'dreta'}; } return p; };
+  const square = (start, tag, rounds=4) => { const out=[]; let cur=start;
+  const noms=['amb la parella inicial','amb la parella de fila','amb la parella de columna','amb la parella de fila'];
+  for(let r=0;r<rounds;r++){
+    out.push(F((r===0?'Picar en parella':'Picar '+noms[r])+tag, {pos:still(cur), seq:SEQ,
+      nota: r===0 && !tag ? "Dues files de 4 enfrontades: 4 parelles en 2 quadrats (parelles 1-2 a l'esquerra, 3-4 a la dreta). Els dos quadrats fan exactament el mateix alhora. Seqüència: mig, dalt, mig, baix, mig, dalt, mig amb cama dreta endavant i sotacama." : (r===0 ? (rounds<4 ? "El mateix quadrat, però només 2 vegades: s'aturen quan A3 arriba a la posició original de B4." : "Mateix quadrat que al principi, amb la parella del davant i els companys del costat (ara els 1 i els 4 estan canviats).") : '')}));
+    const kind = r%2===0 ? 'col' : 'row';
+    cur = swapStep(cur, kind, r===3);
+    out.push(F((r===3 ? 'Intercanvi en fila (4/4): els del mig no giren' : `Intercanvi ${kind==='col'?'en columna':'en fila'} i gir de 90° (${r+1}/${rounds})`)+tag, {pos:cur, mou:{temps:1,picades:0,solapa:1}, seq:[], dubtos:false,
+      nota: r===0 && !tag ? "En acabar el sotacama, s'intercanvien dins la parella i giren 90° per quedar cara a cara amb el del costat." : (r===3 ? (tag ? "Com la primera vegada: els del mig no giren i queden cara a cara entre quadrats." : "Tothom torna a la posició inicial. Els del mig no giren: A3 queda mirant A2 i B3 mira B2 (entre quadrats). Els de fora giren com sempre: A1 mira B1 i A4 mira B4.") : '')}));
+  }
+  return {out, end:cur}; };
+  const figs=[]; const q1=square(b0,''); figs.push(...q1.out); let cur=q1.end;
+  figs.push(F('Encarats amb l\'altre quadrat', {pos:still(cur), seq:['lluita','pausa'], dubtos:false,
+    nota:"A3–A2 i B3–B2 queden cara a cara entre quadrats;  A1–B1 i A4–B4 en columna. Fan una lluita (mig, baix, dalt, baix, dalt)."}));
+  // Formar la creu segons la posició (columna 1-4 i fila de dalt/baix), no segons el nom.
+  const CP = 0.6; // mitja distància entre parella a la creu
+  const creuFrom = src => { const p={}; for(const k in src){ const q=src[k], c=[1,2,3,4].find(i=>Math.abs(q.x-xs(i))<0.05), top=Math.abs(q.y-YT)<0.05;
+      // a la creu les parelles s'acosten (uns 1,2 m) perquè es trobin els bastons
+      if(c===2) p[k]={x:(xs(3)+xs(4))/2, y:top?4-CP:4+CP, o:top?0:180, tipus:'arc', costat:'dreta'};
+      else if(c===3) p[k]={x:(xs(1)+xs(2))/2, y:top?4-CP:4+CP, o:top?0:180, tipus:'arc', costat:'dreta'};
+      // els de dalt (A) passen per dins; els de baix (B) per fora, per la dreta del company de columna
+      else if(c===1) p[k]={x:5-CP, y:top?YB+0.9:YT-0.9, o:90, tipus:'via', via: top ? [{x:3.0,y:4.0}] : [{x:1.9,y:4.0},{x:2.1,y:2.6}]};
+      else if(c===4) p[k]={x:5+CP, y:top?YB+0.9:YT-0.9, o:270, tipus:'via', via: top ? [{x:7.0,y:4.0}] : [{x:8.1,y:4.0},{x:7.9,y:2.6}]};
+      else p[k]={x:q.x, y:q.y, o:q.o}; } return p; };
+  const creu = creuFrom(cur);
+  // Tornada des de la creu: camins segons el lloc de cadascú a la creu (explicat per Susan)
+  const viaFor = q => { const L=q.x<5, T=q.y<4;
+    if(T && L)  return [{x:6.2,y:2.85}];                  // dalt-esquerra: passa entre B4 i A2
+    if(T && !L) return [{x:5,y:1.5},{x:1.8,y:3.2}];       // dalt-dreta: per fora, per la dreta de B1
+    if(!T && !L) return [{x:3.8,y:5.15}];                 // baix-dreta: passa entre A1 i B3
+    return [{x:5,y:6.5},{x:8.2,y:4.8}]; };                // baix-esquerra: per fora, per la dreta de A4
+  const torna23 = (()=>{ const p={}; for(const k in creu){ const n=+k.slice(1);
+      const src = (n===2||n===3) ? k : k[0]+(n===1?4:1); p[k] = Object.assign({}, b0[src], {tipus:'arc', costat:'dreta'}, (n===2||n===3)?{}:{tipus:'via', via:viaFor(creu[k])}); } return p; })();
+  const q2 = square(still(torna23), ' · 2a vegada');
+  const creu2 = creuFrom(q2.end);
+  const q3 = square(b0, ' · acte 3', 2);
+  const ACTE = (n, list) => list.map(f=>Object.assign(f,{acte:n}));
+  return {
+    id:'ball_arbeca', nom:"Ball de bastons d'Arbeca", exemple:true, versioExemple:42,
+    musica:{bpm:114, tempsPerCompas:2, audios:[AUDIO_ARBECA(), AUDIO_INFANTIL()], audioActiu:'aud_assaig'},
+    espai:{ample:10, fons:8},
+    balladors,
+    figures:[
+      ...ACTE(1,[...figs,
+      F('Canvi de quadrat picant a terra', {pos:creu, mou:{temps:4,picades:4}, seq:[], dubtos:false,
+        nota:"Els 2 i els 3 canvien de quadrat, cadascun es desvia per la seva dreta, mentre piquen 4 cops a terra. Acaben al mig del quadrat contrari: els 3 entre les posicions inicials dels 1 i els 2, i els 2 entre les dels 3 i els 4. En arribar, cadascú mira la seva parella B/A (A3–B3, A2–B2). Mentrestant, A1 i A4 es troben cara a cara per sota d'on eren B2 i B3, i B1 i B4 cara a cara per sobre d'on eren A2 i A3. Els B1 i B4 hi van per fora (B1 per la dreta d'A1, B4 per la dreta d'A4); els A1 i A4 per dins."}),
+      F('La creu', {pos:still(creu), seq:['el creuat','pausa','pausa'],
+        nota:"Amb la creu formada, cada parella pica «el creuat»: mig, dalt, mig, baix, mig, doble."}),
+      F('Tornada a les files (1 i 4 canviats)', {pos:torna23, mou:{temps:4,picades:4}, seq:[], dubtos:false,
+        nota:"Els 2 i els 3 tornen a la posició original picant 4 cops a terra, cadascun per la seva dreta. Mentrestant, els 1 i els 4 tornen a la fila original però a l'altra banda: A1 i A4 s'intercanvien respecte a l'inici, i B1 i B4 també. En arribar, tothom mira com a l'inici (A3 torna a mirar B3). Per confirmar: per on passen els 1 i els 4."}),
+      F('Creuat i lluita', {pos:still(torna23), seq:['el creuat','lluita','pausa'],
+        nota:"Totes les parelles fan el creuat i tot seguit una lluita."})]),
+      ...ACTE(2,[...q2.out,
+      F('Lluita · 2a vegada', {pos:still(q2.end), seq:['lluita','pausa'],
+        nota:"Els 2 i els 3 fan la lluita cara a cara entre quadrats; els 1 i els 4 amb la seva parella en columna."}),
+      F('Canvi de quadrat picant a terra · 2a vegada', {pos:creu2, mou:{temps:4,picades:4}, seq:[],
+        nota:"El mateix moviment que la primera vegada: es torna a formar la creu i cada 2 i 3 queda amb la seva parella inicial."}),
+      F('La creu · 2a vegada', {pos:still(creu2), seq:['el creuat','pausa','pausa'],
+        nota:"Cada parella de la creu pica el creuat."}),
+      F('Tornada a la posició inicial', {pos:(()=>{ const p={}; for(const k in b0){ const n=+k.slice(1); p[k]=Object.assign({}, b0[k], {tipus:'arc', costat:'dreta'}, (n===2||n===3)?{}:{tipus:'via', via:viaFor(creu2[k])}); } return p; })(), mou:{temps:4,picades:4}, seq:[], dubtos:false,
+        nota:"Tothom torna a la posició inicial picant 4 cops a terra i per la dreta; aquest cop els 1 i els 4 tornen al seu lloc original (A1 a l'esquerra)."}),
+      F('Creuat i lluita · 2a vegada', {pos:still(b0), seq:['el creuat','lluita','pausa'],
+        nota:"Igual que al final de l'acte 1: totes les parelles fan el creuat i tot seguit una lluita."})]),
+      ...ACTE(3,[...q3.out,
+        F('Picada final', {pos:still(q3.end), seq:['mig','dalt','mig','baix','mig','dalt','mig+cama dreta endavant','sotacama','mig+tornar a la pròpia posició','sotacama','el creuat','pausa','pausa'], dubtos:false,
+          nota:"Cada parella (A3 amb B3, etc.) fa la picada del quadrat, però després del sotacama no canvien de lloc: tornen a la seva posició i fan un altre sotacama. Seqüència: mig, dalt, mig, baix, mig, dalt, mig, sotacama, mig, sotacama i, per acabar, el creuat (mig, dalt, mig, baix, mig, doble). El ball s'acaba quiets en posició de doble."})]),
+
+    ]
+  };
+}
+
+/* ---------- emmagatzematge local (provisional fins a Supabase) ---------- */
+const KEY = 'bastoners.v1';
+function freshDb(){ const b=exampleBall(); return {balls:[b], cops:clone(COPS0), combis:clone(COMBIS0), curId:b.id, me:''}; }
+function AUDIO_ARBECA(){ return {id:'aud_assaig', nom:'Assaig (vídeo)', src:'ball-arbeca.mp3', inici:10.22, bpm:113.6, previ:8.7}; }
+function AUDIO_INFANTIL(){ return {id:'aud_infantil', nom:'Música (infantil)', src:'ball-arbeca-infantil.mp3', inici:3.24, bpm:109.2, previ:3.24}; }
+function loadDb(){ try{ const s=JSON.parse(localStorage.getItem(KEY)); if(s && Array.isArray(s.balls) && s.balls.length){ const i=s.balls.findIndex(b=>b.id==='ball_arbeca' && b.exemple && (b.versioExemple||1)<42); if(i>=0){ s.balls[i]=exampleBall(); s.me=''; } s.cops=s.cops||[]; if(!s.migDoble){ s.migDoble=true; s.cops.forEach(c=>{ if(c.id==='creuat'){ c.id='doble'; c.nom='Doble'; } }); s.combis=(s.combis||[]).filter(c=>c.id!=='el-creuat'); (s.balls||[]).forEach(b=>b.figures.forEach(f=>{ const fx=a=>a&&a.map(t=>norm(t)==='creuat'?'doble':t); f.seq=fx(f.seq); for(const k in (f.seqPer||{})) f.seqPer[k]=fx(f.seqPer[k]); })); } if(!s.migBaixEsq){ s.migBaixEsq=true; s.cops.forEach(c=>{ if(c.id==='baix' && /bastó dret per sota|part exterior/.test(c.descripcio||'')) c.descripcio=COPS0.find(k=>k.id==='baix').descripcio; }); } if(!s.migLluita){ s.migLluita=true; const l=(s.combis||[]).find(c=>c.id==='lluita'); if(l){ if(l.temps==null) l.temps=0.5; if(l.mantenir==null) l.mantenir=true; } const cr=(s.combis||[]).find(c=>c.id==='creuat'); if(cr && cr.temps==null) cr.temps=0.5; } if(!s.migAudio){ s.migAudio=true; (s.balls||[]).forEach(b=>{ b.musica=b.musica||{bpm:96,tempsPerCompas:2}; delete b.musica.audio; b.musica.audios=b.musica.audios||[]; if(b.id==='ball_arbeca' && b.exemple && !b.musica.audios.length){ b.musica.audios.push(AUDIO_ARBECA()); b.musica.audioActiu='aud_assaig'; } }); } if(!s.migCua){ s.migCua=true; (s.combis||[]).forEach(c=>{ if((c.id==='lluita'||c.id==='creuat') && c.temps===0.5) c.temps=0.75; });
+    (s.balls||[]).forEach(b=>{ if(b.id==='ball_arbeca' && b.exemple) b.figures.forEach(f=>{ const j=(f.seq||[]).join(',');
+      if(/^(Encarats amb l'altre quadrat|Lluita · 2a vegada)/.test(f.nom) && j==='lluita') f.seq=['lluita','pausa'];
+      else if(/^La creu/.test(f.nom) && j==='el creuat') f.seq=['el creuat','pausa','pausa'];
+      else if(/^Creuat i lluita/.test(f.nom) && j==='el creuat,lluita') f.seq=['el creuat','lluita','pausa']; }); }); }
+  if(!s.migFinal){ s.migFinal=true; (s.balls||[]).forEach(b=>{ if(b.id==='ball_arbeca' && b.exemple) b.figures.forEach(f=>{ if(f.nom==='Picada final' && f.seq && f.seq[f.seq.length-1]==='el creuat'){ f.seq=f.seq.concat(['pausa','pausa']); if(f.nota) f.nota=f.nota.replace('Fi del ball.',"El ball s'acaba quiets en posició de doble."); } }); }); }
+  if(!s.migSolapa){ s.migSolapa=true; (s.balls||[]).forEach(b=>{ if(b.id==='ball_arbeca' && b.exemple) b.figures.forEach(f=>{ if(/^Intercanvi/.test(f.nom) && f.mou && +f.mou.temps===2 && !+f.mou.picades){ f.mou.temps=1; f.mou.solapa=1; } }); }); } (s.balls||[]).forEach(b=>((b.musica&&b.musica.audios)||[]).forEach(a=>{ if(a.id==='aud_assaig' && a.inici===7.06) a.inici=10.22; if(a.id==='aud_assaig' && a.previ==null) a.previ=8.7; if(a.id==='aud_infantil' && a.inici===10.94){ a.inici=3.24; a.previ=3.24; } })); (s.balls||[]).forEach(b=>{ if(b.id==='ball_arbeca' && b.exemple && b.musica && b.musica.audios && !b.musica.audios.some(a=>a.id==='aud_infantil') && !s.migInf){ b.musica.audios.push(AUDIO_INFANTIL()); } }); s.migInf=true; COMBIS0.forEach(c=>{ if(!s.combis.some(k=>k.id===c.id)) s.combis.push(clone(c)); }); return s; } }catch(e){} return freshDb(); }
+let db = loadDb();
+let saveTimer=null;
+function save(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>{ try{ localStorage.setItem(KEY, JSON.stringify(db)); }catch(e){} }, 250); }
+
+/* ---------- estat de la vista ---------- */
+let ball = db.balls.find(b=>b.id===db.curId) || db.balls[0];
+let tl = [], total = 1, t = 0, playing = false, editing = false;
+let sel = new Set();
+let tab = 'seq';
+let lastBeat = -1;
+
+/* ---------- seqüències ---------- */
+function copById(n){ n=norm(n); return db.cops.find(c=>norm(c.id)===n || norm(c.nom)===n); }
+function combiById(n){ n=norm(n); return db.combis.find(c=>norm(c.id)===n || norm(c.nom)===n); }
+function parseTok(tok){ const parts=String(tok).split('+'); return {n:norm(parts[0]), peus:parts.slice(1).join('+').trim()}; }
+function expand(seq, depth=0){
+  const out=[];
+  (seq||[]).forEach(tok=>{
+    const {n,peus}=parseTok(tok); if(!n) return;
+    const cb = depth<3 && combiById(n);
+    if(cb){ const sub=expand(cb.seq, depth+1); sub.forEach((s,i)=>out.push(Object.assign({}, s, {combi: s.combi||cb.nom, peus: i===0&&peus ? peus : s.peus,
+      dur: s.combi ? s.dur : (+cb.temps||1), mantenir: s.combi ? s.mantenir : !!cb.mantenir, ci: s.combi ? s.ci : i, cn: s.combi ? s.cn : sub.length}))); }
+    else { const c=copById(n); out.push({c: c? c.id : n, nom: c? c.nom : n, sol: c? c.sol : true, peus, combi:null, dur:1}); }
+  });
+  return out;
+}
+function seqText(seq){ return (seq||[]).join(', '); }
+function textSeq(s){ return s.split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean); }
+
+function rebuild(){
+  let acc=0;
+  tl = ball.figures.map((f,i)=>{
+    const move = i===0 ? 0 : Math.max(0, +(f.mou&&f.mou.temps)||0);
+    const seqs={}; let len=0;
+    ball.balladors.forEach(d=>{ const s=expand((f.seqPer&&f.seqPer[d.id]) || f.seq); let a=0; s.forEach(it=>{ it.t0=a; a+=it.dur||1; }); seqs[d.id]=s; len=Math.max(len,a); });
+    if(move+len===0) len=1;
+    // solapa: el desplaçament continua durant els primers temps de la figura següent (p. ex. l'intercanvi es fa mentre ja piquen)
+    const solapa = len===0 ? Math.min(move, Math.max(0, +(f.mou&&f.mou.solapa)||0)) : 0;
+    const seg={i,f,start:acc,move,len,solapa,end:acc+move+len-solapa,seqs}; acc=seg.end; return seg;
+  });
+  total = Math.max(1, acc);
+  scrub.max = total; t = Math.min(t, total-0.001);
+}
+function segAt(tt){ for(const s of tl) if(tt < s.end) return s; return tl[tl.length-1]; }
+
+/* ---------- geometria i temps ---------- */
+const dirOf = o => { const r=o*Math.PI/180; return [Math.sin(r), Math.cos(r)]; };
+const rightOf = o => { const r=o*Math.PI/180; return [-Math.cos(r), Math.sin(r)]; };
+const ease = p => p<.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2;
+const wrap180 = a => { a=((a%360)+540)%360-180; return a; };
+function defaultPos(d,i){ const n=ball.balladors.length; return {x: ball.espai.ample/2 + (i-(n-1)/2)*0.8, y: ball.espai.fons/2, o:0}; }
+function posOf(f, d, i){ return (f.pos && f.pos[d.id]) || defaultPos(d,i); }
+
+function pathPt(P0,P1,e){
+  if(Array.isArray(P1.via) && P1.via.length){
+    // camí per punts de pas (corba suau Catmull-Rom), repartit per longitud
+    const pts=[[P0.x,P0.y],...P1.via.map(v=>[v.x,v.y]),[P1.x,P1.y]], n=pts.length-1;
+    const L=[]; let tot=0; for(let i=0;i<n;i++){ const d=Math.hypot(pts[i+1][0]-pts[i][0],pts[i+1][1]-pts[i][1]); L.push(d); tot+=d; }
+    let g=e*tot, i=0; while(i<n-1 && g>L[i]){ g-=L[i]; i++; }
+    const u=L[i]? Math.min(1,g/L[i]) : 0, p0=pts[Math.max(0,i-1)], p1=pts[i], p2=pts[i+1], p3=pts[Math.min(n,i+2)];
+    const cr=(a,b,c,d)=>0.5*((2*b)+(-a+c)*u+(2*a-5*b+4*c-d)*u*u+(-a+3*b-3*c+d)*u*u*u);
+    return [cr(p0[0],p1[0],p2[0],p3[0]), cr(p0[1],p1[1],p2[1],p3[1])];
+  }
+  const dx=P1.x-P0.x, dy=P1.y-P0.y, dist=Math.hypot(dx,dy);
+  if(P1.tipus==='arc' && (P1.costat==='dreta'||P1.costat==='esquerra') && dist>0.01){
+    const rx=-dy/dist, ry=dx/dist, k=Math.min(0.35*dist,0.4)*(P1.costat==='dreta'?1:-1);
+    const cx=(P0.x+P1.x)/2+rx*k, cy=(P0.y+P1.y)/2+ry*k, u=1-e;
+    return [u*u*P0.x+2*u*e*cx+e*e*P1.x, u*u*P0.y+2*u*e*cy+e*e*P1.y];
+  }
+  if(P1.tipus==='cercle' && dist>0.01){
+    // corba pel voltant del centre de l'espai (cap enfora), amb desviació cap a la dreta o l'esquerra de qui es mou
+    const cx=ball.espai.ample/2, cy=ball.espai.fons/2;
+    const a0=Math.atan2(P0.y-cy,P0.x-cx), r0=Math.hypot(P0.x-cx,P0.y-cy);
+    let da=Math.atan2(P1.y-cy,P1.x-cx)-a0; while(da>Math.PI) da-=2*Math.PI; while(da<-Math.PI) da+=2*Math.PI;
+    if(P1.sortida){ // surt cap a la seva dreta/esquerra: tria el sentit de gir encara que sigui el camí llarg
+      const rv=rightOf(P0.o||0), tx=-Math.sin(a0), ty=Math.cos(a0), want=(tx*rv[0]+ty*rv[1])*(P1.sortida==='esquerra'?-1:1)>=0?1:-1;
+      if(Math.sign(da)!==want && Math.abs(da)>1e-6) da += want*2*Math.PI; }
+    const r1=Math.hypot(P1.x-cx,P1.y-cy), a=a0+da*e;
+    // la dreta de qui gira en sentit positiu (horari a la pantalla) apunta cap a fora
+    const side=(P1.costat==='esquerra'?-1:P1.costat==='dreta'?1:0)*(da>=0?1:-1);
+    const r=r0+(r1-r0)*e + Math.sin(Math.PI*e)*(0.6 + 0.35*side);
+    return [cx+Math.cos(a)*r, cy+Math.sin(a)*r];
+  }
+  return [P0.x+dx*e, P0.y+dy*e];
+}
+function oriDelta(P0,P1){
+  if(P1.tipus==='gir') return (P1.costat==='esquerra'?1:-1) * (+P1.graus||360) + wrap180(P1.o-P0.o);
+  let d=wrap180(P1.o-P0.o);
+  if(Math.abs(Math.abs(d)-180)<0.01) d = P1.costat==='esquerra' ? 180 : -180;
+  return d;
+}
+
+function movePos(P0,P1,p){
+  const e=ease(p); let [x,y]=pathPt(P0,P1,e), o=P0.o+oriDelta(P0,P1)*e;
+  // en els trasllats, la mirada va endavant, cap al destí (gira al principi i al final)
+  if(P1.tipus!=='gir' && Math.hypot(P1.x-P0.x,P1.y-P0.y)>0.3){
+    const a1=pathPt(P0,P1,Math.max(0,e-0.02)), a2=pathPt(P0,P1,Math.min(1,e+0.02));
+    const head=Math.atan2(a2[0]-a1[0], a2[1]-a1[1])*180/Math.PI;
+    const ang=(from,to,k)=>from+wrap180(to-from)*Math.max(0,Math.min(1,k));
+    o = p<0.15 ? ang(P0.o, head, p/0.15) : (p>0.85 ? ang(head, P1.o, (p-0.85)/0.15) : head);
+  }
+  return [x,y,o];
+}
+function stateAt(tt){
+  const seg=segAt(tt), f=seg.f, prev=ball.figures[seg.i-1], local=tt-seg.start;
+  const out={};
+  ball.balladors.forEach((d,i)=>{
+    const P1=posOf(f,d,i), P0=prev? posOf(prev,d,i) : P1;
+    let x,y,o,act;
+    if(local < seg.move){
+      const p=local/seg.move;
+      [x,y,o]=movePos(P0,P1,p);
+      const N=+(f.mou&&f.mou.picades)||0;
+      if(N>0){ const q=p*N, k=Math.min(N-1,Math.floor(q)); act={type:'picada', n:k+1, of:N, frac:q-k}; }
+      else act={type:'camina'};
+    } else {
+      x=P1.x; y=P1.y; o=P1.o;
+      const ps=tl[seg.i-1];
+      if(ps && ps.solapa && tt < ps.start+ps.move){ const f2=ball.figures[seg.i-2], Q1=posOf(ps.f,d,i), Q0=f2?posOf(f2,d,i):Q1; [x,y,o]=movePos(Q0,Q1,(tt-ps.start)/ps.move); }
+      const b=local-seg.move, sq=seg.seqs[d.id], bi=sq.findIndex(q=>b>=q.t0 && b<q.t0+(q.dur||1)), it=sq[bi];
+      act = it ? {type:'cop', it, frac:(b-it.t0)/(it.dur||1), idx:bi} : {type:'repos'};
+      // pausa: es manté la posició de l'últim cop (p. ex. el doble)
+      if(it){ let j=bi; while(j>=0 && sq[j].c==='pausa') j--; if(it.c==='pausa' && j>=0) act.hold=sq[j]; const nx=sq[bi+1]; if(it.c!=='pausa' && nx && nx.c==='pausa') act.holdNext=true; }
+    }
+    out[d.id]={x,y,o,act};
+  });
+  // company del davant per als cops de parella
+  ball.balladors.forEach(d=>{
+    const s=out[d.id]; if(s.act.type!=='cop'||s.act.it.sol) return;
+    const [fx,fy]=dirOf(s.o); let best=null, bd=1e9;
+    ball.balladors.forEach(e=>{ if(e===d) return; const q=out[e.id], vx=q.x-s.x, vy=q.y-s.y, dist=Math.hypot(vx,vy);
+      if(dist<2.6 && dist>0.05 && (vx*fx+vy*fy)/dist>0.75 && dist<bd){bd=dist;best=e.id;} });
+    s.partner=best;
+  });
+  return {seg, local, st:out};
+}
+
+/* ---------- vista zenital (SVG) ---------- */
+const zen=document.getElementById('zen');
+const NS='http://www.w3.org/2000/svg';
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let drag=null, box=null;
+
+function label(d){ if(chkNames.checked && d.nom) return d.nom.split(' ')[0].slice(0,8); return d.posicio; }
+
+function drawZen(S){
+  const W=ball.espai.ample, H=ball.espai.fons;
+  zen.setAttribute('viewBox', `-0.5 -0.9 ${W+1} ${H+1.9}`);
+  let g='';
+  g+=`<rect x="0" y="0" width="${W}" height="${H}" fill="var(--floor)" stroke="var(--line)" stroke-width="0.04" rx="0.1"/>`;
+  for(let x=1;x<W;x++) g+=`<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="var(--grid)" stroke-width="0.02"/>`;
+  for(let y=1;y<H;y++) g+=`<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="var(--grid)" stroke-width="0.02"/>`;
+  g+=`<text x="${W/2}" y="-0.35" text-anchor="middle" font-size="0.26" fill="var(--muted)" font-family="var(--f-mono)">${W} m × ${H} m · quadres d'1 m</text>`;
+  g+=`<line x1="${W/2}" y1="0" x2="${W/2}" y2="${H}" stroke="var(--muted)" stroke-width="0.03" stroke-dasharray="0.15 0.12" opacity="0.6"/>`;
+  g+=`<text x="${W/2+0.12}" y="0.35" font-size="0.2" fill="var(--muted)">meitat</text>`;
+  g+=`<rect x="${W/2-2}" y="${H+0.3}" width="4" height="0.5" rx="0.12" fill="var(--ink)"/>`;
+  g+=`<text x="${W/2}" y="${H+0.64}" text-anchor="middle" font-size="0.26" font-weight="700" fill="var(--surface)" letter-spacing="0.06">JUTGES · PÚBLIC</text>`;
+  const seg=S.seg, prev=ball.figures[seg.i-1];
+  if(chkPaths.checked && prev){
+    ball.balladors.forEach((d,i)=>{
+      const P0=posOf(prev,d,i), P1=posOf(seg.f,d,i);
+      if(Math.hypot(P1.x-P0.x,P1.y-P0.y)<0.05) return;
+      let pts=[]; for(let k=0;k<=16;k++){ pts.push(pathPt(P0,P1,k/16).map(v=>v.toFixed(3)).join(',')); }
+      g+=`<polyline points="${pts.join(' ')}" fill="none" stroke="var(--${d.color||'c1'})" stroke-width="0.04" stroke-dasharray="0.12 0.1" opacity="0.7"/>`;
+      g+=`<circle cx="${P1.x}" cy="${P1.y}" r="0.06" fill="var(--${d.color||'c1'})" opacity="0.7"/>`;
+    });
+  }
+  // línies de cop entre parelles
+  ball.balladors.forEach(d=>{ const s=S.st[d.id]; if(s.partner && s.act.frac<0.6){ const q=S.st[s.partner];
+    g+=`<line x1="${s.x}" y1="${s.y}" x2="${q.x}" y2="${q.y}" stroke="var(--wood)" stroke-width="0.07" stroke-linecap="round" opacity="${(1-s.act.frac/0.6).toFixed(2)}"/>`; } });
+  const order=[...ball.balladors].sort((a,b)=>(a.id===db.me)-(b.id===db.me));
+  order.forEach(d=>{
+    const s=S.st[d.id], col=`var(--${d.color||'c1'})`, isMe=d.id===db.me, isSel=sel.has(d.id);
+    let badge='';
+    if(s.act.type==='cop' && s.act.it.c!=='pausa') badge=s.act.it.nom;
+    else if(s.act.type==='picada') badge='pica '+s.act.n;
+    g+=`<g data-id="${esc(d.id)}" transform="translate(${s.x.toFixed(3)} ${s.y.toFixed(3)})" style="cursor:${editing?'grab':'pointer'}">`;
+    if(isSel) g+=`<circle r="0.4" fill="none" stroke="var(--ink)" stroke-width="0.04" stroke-dasharray="0.08 0.06"/>`;
+    if(isMe) g+=`<circle r="0.46" fill="none" stroke="var(--faixa)" stroke-width="0.08"/>`;
+    g+=`<g transform="rotate(${(-s.o).toFixed(2)})"><path d="M-0.13 0.19 L0.13 0.19 L0 0.38 Z" fill="${col}"/></g>`;
+    g+=`<circle r="0.24" fill="${col}" stroke="var(--surface)" stroke-width="0.04"/>`;
+    g+=`<text y="0.065" text-anchor="middle" font-size="0.17" font-weight="700" fill="var(--surface)" font-family="var(--f-text)">${esc(d.posicio)}</text>`;
+    if(chkNames.checked && d.nom) g+=`<text y="0.56" text-anchor="middle" font-size="0.18" font-weight="600" fill="var(--ink)">${esc(label(d))}</text>`;
+    if(badge) g+=`<text y="-0.33" text-anchor="middle" font-size="0.17" font-weight="700" fill="${isMe?'var(--faixa)':'var(--ink)'}" paint-order="stroke" stroke="var(--floor)" stroke-width="0.06">${esc(badge)}</text>`;
+    g+=`</g>`;
+  });
+  if(box){ const x=Math.min(box.x0,box.x1), y=Math.min(box.y0,box.y1);
+    g+=`<rect x="${x}" y="${y}" width="${Math.abs(box.x1-box.x0)}" height="${Math.abs(box.y1-box.y0)}" fill="var(--olive)" fill-opacity="0.12" stroke="var(--olive)" stroke-width="0.03"/>`; }
+  zen.innerHTML=g;
+}
+
+function svgPt(ev){ const p=zen.createSVGPoint(); p.x=ev.clientX; p.y=ev.clientY; const m=zen.getScreenCTM(); return m? p.matrixTransform(m.inverse()) : {x:0,y:0}; }
+zen.addEventListener('pointerdown', ev=>{
+  const g=ev.target.closest('[data-id]'); const pt=svgPt(ev);
+  if(!editing){ if(g){ db.me = db.me===g.dataset.id ? '' : g.dataset.id; save(); renderCamSel(); renderPanel(); renderNow(); } return; }
+  const seg=segAt(t); snapToFigure(seg.i);
+  if(g){
+    const id=g.dataset.id;
+    if(ev.shiftKey||ev.ctrlKey||ev.metaKey){ sel.has(id)?sel.delete(id):sel.add(id); }
+    else if(!sel.has(id)){ sel=new Set([id]); }
+    const f=seg.f; const start={};
+    sel.forEach(k=>{ const i=ball.balladors.findIndex(d=>d.id===k); const d=ball.balladors[i]; if(!d) return; f.pos[k]=Object.assign({}, posOf(f,d,i)); start[k]={x:f.pos[k].x,y:f.pos[k].y}; });
+    drag={x0:pt.x,y0:pt.y,start,moved:false};
+  } else {
+    if(!(ev.shiftKey||ev.ctrlKey||ev.metaKey)) sel=new Set();
+    box={x0:pt.x,y0:pt.y,x1:pt.x,y1:pt.y};
+  }
+  zen.setPointerCapture(ev.pointerId); renderPanel(); frame(true);
+});
+zen.addEventListener('pointermove', ev=>{
+  if(!drag && !box) return; const pt=svgPt(ev);
+  if(drag){ const f=segAt(t).f, dx=pt.x-drag.x0, dy=pt.y-drag.y0, snap=v=>Math.round(v*10)/10;
+    if(Math.hypot(dx,dy)>0.05) drag.moved=true;
+    for(const k in drag.start){ f.pos[k].x=Math.max(0,Math.min(ball.espai.ample, snap(drag.start[k].x+dx))); f.pos[k].y=Math.max(0,Math.min(ball.espai.fons, snap(drag.start[k].y+dy))); }
+  } else { box.x1=pt.x; box.y1=pt.y; }
+  frame(true);
+});
+zen.addEventListener('pointerup', ()=>{
+  if(box){ const S=stateAt(t), x0=Math.min(box.x0,box.x1), x1=Math.max(box.x0,box.x1), y0=Math.min(box.y0,box.y1), y1=Math.max(box.y0,box.y1);
+    if(x1-x0>0.1||y1-y0>0.1) ball.balladors.forEach(d=>{ const s=S.st[d.id]; if(s.x>=x0&&s.x<=x1&&s.y>=y0&&s.y<=y1) sel.add(d.id); });
+    box=null; renderPanel(); }
+  if(drag){ if(drag.moved){ rebuild(); save(); } drag=null; }
+  frame(true);
+});
+
+/* ---------- vista dels jutges (canvas, perspectiva simple) ---------- */
+const cv=document.getElementById('front'), ctx=cv.getContext('2d');
+const P = (f,r,z)=>[f,r,z];
+// Braç esquerre: per defecte es queda en posició de «mig», esperant el cop de la mà dreta.
+const LM=P(.35,-.18,1.0), LMd=P(.3,.9,.3);
+const POSES = {
+  repos:   {R:P(.12,.24,.95), Rd:P(.55,.05,-.8), L:LM, Ld:LMd},
+  picada:  {R:P(.6,.18,.45), Rd:P(.12,0,-1), L:P(.6,-.18,.45), Ld:P(.12,0,-1)},
+  picUp:   {R:P(.55,.18,.72), Rd:P(.25,0,-1), L:P(.55,-.18,.72), Ld:P(.25,0,-1)}, // inclinat, bastons a punt de picar
+  terra:   {R:P(.35,.14,.45), Rd:P(.35,0,-1), L:P(.35,-.14,.45), Ld:P(.35,0,-1), crouch:.6},
+  baix:    {L:P(.4,-.16,.8), Ld:P(.85,.12,-.4), R:P(.35,.18,1.0), Rd:P(.3,-.9,.3)}, // mà esquerra; la dreta espera a mig
+  davant:  {R:P(.35,.1,.95), Rd:P(.6,-.12,-.8), L:P(.35,-.1,.95), Ld:P(.6,.12,-.8)},
+  mig:     {R:P(.35,.18,1.0), Rd:P(.3,-.9,.3), L:LM, Ld:LMd},
+  dalt:    {R:P(.3,.12,1.75), Rd:P(.55,-.2,.8), L:LM, Ld:LMd},
+  doble:   {R:P(.35,.12,1.4), Rd:P(.2,-.7,.7), L:P(.35,-.12,1.4), Ld:P(.2,.7,.7)},
+  sotacama:{R:P(.22,.08,.6), Rd:P(1,-.22,.02), L:LM, Ld:LMd, leg:1} // cama esquerra aixecada (genoll endavant), bastó dret per sota la cuixa
+};
+function poseFor(act){
+  const r=POSES.repos;
+  if(act.type==='picada'){ const a=act.frac<.4? act.frac/.4 : Math.max(0,1-(act.frac-.4)/.6); return [POSES.picada,a]; }
+  if(act.type==='cop' && act.it.c==='pausa' && act.hold && POSES[act.hold.c]) return poseFor({type:'cop', it:act.hold, frac:0.5, holdNext:true});
+  if(act.type!=='cop' || act.it.c==='pausa') return [r,0];
+  let p=POSES[act.it.c] || POSES.mig, f=act.frac;
+  if(/salt/i.test(act.it.peus||'')) p=Object.assign({}, p, {jump:.12}); // saltiró només si s'indica (p. ex. «dalt+saltiró»)
+  if(act.it.mantenir && act.it.ci>0 && (act.it.c==='baix'||act.it.c==='dalt')){
+    // lluita ràpida: la mà esquerra es queda a baix i la dreta a dalt, sense tornar a mig
+    const B=POSES.baix, D=POSES.dalt, h={L:B.L, Ld:B.Ld, R:D.R, Rd:D.Rd};
+    const k=Math.sin(Math.PI*Math.min(1,f/.6)); // petit cop de la mà que pica
+    if(act.it.c==='baix') h.L=[B.L[0]+.08*k, B.L[1], B.L[2]-.04*k]; else h.R=[D.R[0]+.08*k, D.R[1], D.R[2]+.04*k];
+    const last=act.it.ci===act.it.cn-1;
+    const a = act.it.ci===1 ? Math.min(1,f/.3) : (last && f>.7 && !act.holdNext ? 1-(f-.7)/.3*.5 : 1);
+    return [Object.assign({}, p, h), a];
+  }
+  if(act.it.c==='mig'){ // els dos braços s'ajunten al davant de la cintura: es veu que piquen els dos bastons
+    const k=Math.sin(Math.PI*Math.min(1,f/.55));
+    p=Object.assign({}, p, {R:[p.R[0]+.08*k, p.R[1]-.13*k, p.R[2]+.03*k], L:[p.L[0]+.08*k, p.L[1]+.13*k, p.L[2]+.03*k]});
+  }
+  const a = f<.3 ? f/.3 : (f>.8 && !act.holdNext ? 1-(f-.8)/.2*.5 : 1);
+  return [p,a];
+}
+const lerp=(a,b,k)=>a+(b-a)*k;
+const lerp3=(a,b,k)=>[lerp(a[0],b[0],k),lerp(a[1],b[1],k),lerp(a[2],b[2],k)];
+
+function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim() || '#888'; }
+
+/* ---------- càmera de la vista 3D ---------- */
+const CAMS=[['jutges','Jutges',0],['diag','Diagonal',35],['esq','Esquerra',-90],['dta','Dreta',90],['darrere','Darrere',180],['meva','Darrere meu',null]];
+let camMode='jutges', camAng=0, camDrag=null, camAnim=0;
+try{ const c=JSON.parse(localStorage.getItem(KEY+'.cam')||'null'); if(c){ camMode=c.m||'jutges'; camAng=+c.a||0; } }catch(_){}
+function camTarget(S){ const c=CAMS.find(k=>k[0]===camMode); if(!c) return camAng;
+  if(c[2]!==null) return c[2];
+  const me=db.me && S && S.st[db.me]; return me ? me.o+180 : 0; }
+function renderCamSel(){ const el=document.getElementById('camSel'); if(!el) return;
+  el.innerHTML=CAMS.filter(c=>c[0]!=='meva'||db.me).map(([k,n])=>`<button type="button" data-cam="${k}" aria-pressed="${camMode===k}">${n}</button>`).join('') + (camMode==='lliure'?'<button type="button" aria-pressed="true" disabled>Lliure</button>':''); }
+function saveCam(){ try{ localStorage.setItem(KEY+'.cam', JSON.stringify({m:camMode,a:camAng})); }catch(_){} }
+function animCam(){ if(camAnim) return; const step=()=>{ const S=stateAt(Math.min(t,total-0.0001)), tg=camTarget(S), d=wrap180(tg-camAng);
+    if(camMode==='lliure' || Math.abs(d)<0.5){ if(camMode!=='lliure') camAng=tg; camAnim=0; drawFront(S); return; }
+    camAng+=d*0.18; drawFront(S); camAnim=requestAnimationFrame(step); }; camAnim=requestAnimationFrame(step); }
+document.getElementById('camSel').addEventListener('click',e=>{ const b=e.target.closest('[data-cam]'); if(!b) return; camMode=b.dataset.cam; renderCamSel(); saveCam(); animCam(); });
+cv.addEventListener('pointerdown',e=>{ camDrag={x:e.clientX,a:camAng}; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointermove',e=>{ if(!camDrag) return; const dx=e.clientX-camDrag.x; if(Math.abs(dx)<3 && camMode!=='lliure') return;
+  if(camMode!=='lliure'){ camMode='lliure'; renderCamSel(); } camAng=camDrag.a - dx*0.5; drawFront(stateAt(Math.min(t,total-0.0001))); });
+const camEnd=()=>{ if(camDrag){ camDrag=null; saveCam(); } };
+cv.addEventListener('pointerup',camEnd); cv.addEventListener('pointercancel',camEnd);
+
+function drawFront(S){
+  if(camMode==='meva' && !camAnim){ const tg=camTarget(S), d=wrap180(tg-camAng); camAng += Math.abs(d)<0.5 ? d : d*0.12; }
+  const dpr=Math.min(2, window.devicePixelRatio||1), w=cv.clientWidth, h=cv.clientHeight;
+  if(!w||!h) return;
+  if(cv.width!==Math.round(w*dpr)){ cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); }
+  ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
+  const W=ball.espai.ample, H=ball.espai.fons, D=3, camZ=1.5;
+  // rotació de la càmera al voltant del centre dels balladors (0° = jutges)
+  const pts=[]; ball.figures.forEach(f=>ball.balladors.forEach((d,i)=>pts.push(posOf(f,d,i))));
+  let mx=0,my=0; pts.forEach(p=>{mx+=p.x;my+=p.y}); mx/=pts.length||1; my/=pts.length||1;
+  const th=camAng*Math.PI/180, cs=Math.cos(th), sn=Math.sin(th);
+  const rot=(x,y)=>{ const dx=x-mx, dy=y-my; return [dx*cs-dy*sn, dx*sn+dy*cs]; };
+  // enquadra tots els balladors de tot el ball (càmera estable)
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  pts.forEach(p=>{ const [rx,ry]=rot(p.x,p.y); x0=Math.min(x0,rx); x1=Math.max(x1,rx); y0=Math.min(y0,ry); y1=Math.max(y1,ry); });
+  const camY=y1+D, cx=(x0+x1)/2, Wv=Math.max(3,x1-x0+1.6), dN=camY-y1, dF=camY-y0;
+  const F=Math.min(0.94*w*dN/Wv, (h-30)/((2.1-camZ)/dN + camZ/dN + 0.2));
+  const hY = h-14 - F*camZ/dN;
+  const projR=(rx,ry,z)=>{ const dep=Math.max(0.5,camY-ry); return [w/2+F*(rx-cx)/dep, hY+F*(camZ-z)/dep, dep]; };
+  const proj=(x,y,z)=>{ const [rx,ry]=rot(x,y); return projR(rx,ry,z); };
+  // segment de terra retallat davant la càmera
+  const segFloor=(xa,ya,xb,yb)=>{ let [ax,ay]=rot(xa,ya), [bx,by]=rot(xb,yb); const lim=camY-0.8;
+    if(ay>lim && by>lim) return null;
+    if(ay>lim){ const k=(lim-by)/(ay-by); ax=bx+(ax-bx)*k; ay=lim; } else if(by>lim){ const k=(lim-ay)/(by-ay); bx=ax+(bx-ax)*k; by=lim; }
+    return [projR(ax,ay,0), projR(bx,by,0)]; };
+  const C={floor:cssVar('--floor'), line:cssVar('--line'), grid:cssVar('--grid'), ink:cssVar('--ink'), wood:cssVar('--wood'), faixa:cssVar('--faixa'), muted:cssVar('--muted'), surface:cssVar('--surface')};
+  // terra de l'escenari
+  // terra: polígon de l'escenari retallat davant la càmera
+  const corners=[[0,0],[W,0],[W,H],[0,H]], poly=[];
+  corners.forEach((p,i)=>{ const q=corners[(i+1)%4], sg=segFloor(p[0],p[1],q[0],q[1]); if(sg){ poly.push(sg[0],sg[1]); } });
+  ctx.fillStyle=C.floor; ctx.strokeStyle=C.line; ctx.lineWidth=1;
+  if(poly.length){ ctx.beginPath(); poly.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+  ctx.strokeStyle=C.grid;
+  const gl=(sg)=>{ if(!sg) return; ctx.beginPath(); ctx.moveTo(sg[0][0],sg[0][1]); ctx.lineTo(sg[1][0],sg[1][1]); ctx.stroke(); };
+  for(let x=1;x<W;x++) gl(segFloor(x,0,x,H));
+  for(let y=1;y<H;y++) gl(segFloor(0,y,W,y));
+  // marca on seuen els jutges (davant de l'escenari)
+  { const sg=segFloor(W*0.35,H+0.25,W*0.65,H+0.25); if(sg){ ctx.strokeStyle=C.muted; ctx.lineWidth=3; gl(sg); ctx.lineWidth=1; } }
+  const list=ball.balladors.map(d=>({d,s:S.st[d.id]})).sort((a,b)=>rot(a.s.x,a.s.y)[1]-rot(b.s.x,b.s.y)[1]);
+  list.forEach(({d,s})=>{
+    const [pose,amt]=poseFor(s.act), R=s.act.type==='picada'?POSES.picUp:POSES.repos;
+    // translació picant a terra: el cos va doblegat per la cintura
+    const bend = s.act.type==='picada' ? (s.act.n===1&&s.act.frac<.3 ? s.act.frac/.3 : (s.act.n===s.act.of&&s.act.frac>.75 ? (1-s.act.frac)/.25 : 1)) : 0;
+    const fwd=dirOf(s.o), rgt=rightOf(s.o);
+    const crouch=lerp(1, pose.crouch||1, amt), jump=(pose.jump||0)*amt, step=(pose.step||0)*amt, leg=(pose.leg||0)*amt;
+    const W3=(f,r,z)=>proj(s.x+fwd[0]*f+rgt[0]*r, s.y+fwd[1]*f+rgt[1]*r, z);
+    const col=cssVar('--'+(d.color||'c1'));
+    const dep=Math.max(0.5,camY-rot(s.x,s.y)[1]), sc=F/dep;
+    const ba=bend*Math.PI/4, hip=(0.92-0.14*bend)*crouch+jump, sh=hip+0.5*Math.cos(ba)*crouch, shF=0.5*Math.sin(ba), head=hip+0.7*Math.cos(ba)*crouch, hdF=0.7*Math.sin(ba);
+    if(d.id===db.me){ const p=W3(0,0,0); ctx.strokeStyle=C.faixa; ctx.lineWidth=2.5; ctx.beginPath(); ctx.ellipse(p[0],p[1],sc*.42,sc*.1,0,0,Math.PI*2); ctx.stroke(); }
+    const line=(a,b,lw,stroke)=>{ ctx.strokeStyle=stroke; ctx.lineWidth=lw; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); };
+    const bw=Math.max(2,sc*.13), aw=Math.max(1.5,sc*.07), sw=Math.max(1.5,sc*.045);
+    // cames
+    // genolls una mica flexionats quan van doblegats (translacions)
+    const kneeF=.2*bend, kneeZ=(hip-jump)*.5+jump;
+    const leg2=(fx,r)=>{ if(bend>0){ const k=W3(fx/2+kneeF,r,kneeZ); line(W3(fx,r,jump),k,bw,col); line(k,W3(0,r*.85,hip),bw,col); } else line(W3(fx,r,jump), W3(0,r*.85,hip), bw, col); };
+    leg2(step,.12);
+    if(leg){ // cama esquerra aixecada: cuixa endavant i canyella cap avall
+      const kn=W3(.42*leg,-.12,lerp(hip*.5,hip-.05,leg)+jump), ft=W3(.6*leg,-.12,lerp(0,.4,leg)+jump);
+      line(W3(0,-.1,hip), kn, bw, col); line(kn, ft, bw, col);
+    } else leg2(0,-.12);
+    // tronc i cap
+    line(W3(0,0,hip), W3(shF,0,sh), bw*1.5, col);
+    ctx.fillStyle=col; const hp=W3(hdF,0,head); ctx.beginPath(); ctx.arc(hp[0],hp[1],Math.max(3,sc*.12),0,Math.PI*2); ctx.fill();
+    // braços i bastons
+    [['R','Rd',.2],['L','Ld',-.2]].forEach(([hk,dk,side])=>{
+      const hnd=lerp3(R[hk],pose[hk],amt), dv=lerp3(R[dk],pose[dk],amt);
+      const hz=hnd[2]*(hk==='R'||!pose.crouch?1:1)*(hnd[2]<1?crouch:1)+jump;
+      const a=W3(shF,side,sh-.05), b=W3(hnd[0],hnd[1],hz);
+      line(a,b,aw,col);
+      const n=Math.hypot(dv[0],dv[1],dv[2])||1, L=.6;
+      const tip=W3(hnd[0]+dv[0]/n*L, hnd[1]+dv[1]/n*L, Math.max(0,hz+dv[2]/n*L));
+      line(b,tip,sw,C.wood);
+    });
+    // etiqueta
+    const lp=W3(hdF,0,head+0.32); ctx.fillStyle=d.id===db.me?C.faixa:C.ink;
+    ctx.font=`600 ${Math.max(9,Math.min(13,sc*.2))}px Inter, system-ui, sans-serif`; ctx.textAlign='center';
+    ctx.fillText(label(d), lp[0], lp[1]);
+  });
+}
+
+/* ---------- capçalera "ara" ---------- */
+const nowCard=document.getElementById('nowCard');
+function fmtBeat(b){ const tpc=ball.musica.tempsPerCompas||2; return `c.${Math.floor(b/tpc)+1}`; }
+function renderNow(S){
+  S=S||stateAt(t); const f=S.seg.f, me=ball.balladors.find(d=>d.id===db.me);
+  let big='', nxt='';
+  const who = me || ball.balladors[0];
+  if(who){
+    const s=S.st[who.id];
+    if(s.act.type==='cop'){ big=s.act.it.nom; if(s.act.it.peus) big+=' + '+s.act.it.peus; if((s.act.it.dur||1)<1) big+=' ⚡';
+      const n=S.seg.seqs[who.id][s.act.idx+1]; nxt = n? 'després: '+n.nom : 'després: canvi de figura'; }
+    else if(s.act.type==='picada'){ big=`Picada ${s.act.n}/${s.act.of}`; nxt='desplaçant-se'; }
+    else if(s.act.type==='camina'){ big='Desplaçament'; }
+    else { big='—'; }
+  }
+  nowCard.innerHTML = `<div><div class="meta">${f.acte?'Acte '+esc(f.acte)+' · ':''}Figura ${S.seg.i+1} de ${ball.figures.length}${f.dubtos?' · <span class="chip warn">dubtós</span>':''}</div>
+    <div class="fig">${esc(f.nom)}</div>
+    ${f.nota?`<div class="hint" style="max-width:62ch">${esc(f.nota)}</div>`:''}</div>
+    <div class="bigcop"><div class="k">${me? 'Tu ('+esc(label(me))+')' : 'Exemple: '+esc(who?who.posicio:'')}</div><div class="v">${esc(big)}</div><div class="n">${esc(nxt)}</div></div>`;
+}
+
+/* ---------- panell ---------- */
+const TABS=[['seq','Seqüència'],['edit','Edició'],['ball','Ball'],['cops','Cops'],['lib','Biblioteca']];
+const tabsEl=document.getElementById('tabs'), body=document.getElementById('panelBody');
+function renderTabs(){ tabsEl.innerHTML=TABS.map(([k,n])=>`<button role="tab" aria-selected="${tab===k}" data-tab="${k}">${n}</button>`).join(''); }
+tabsEl.addEventListener('click',e=>{ const b=e.target.closest('[data-tab]'); if(!b) return; tab=b.dataset.tab; try{localStorage.setItem(KEY+'.tab',tab)}catch(_){}
+  renderTabs(); renderPanel(); });
+
+function chipsFor(items, curIdx){
+  let out='', lastC=null;
+  items.forEach((it,i)=>{ const cls=['chip']; if(it.combi) cls.push('combi'); if(i===curIdx) cls.push('cur');
+    out+=`<span class="${cls.join(' ')}" title="${esc(it.combi?('dins de '+it.combi):'')}">${esc(it.nom)}${it.peus?' <small>+ '+esc(it.peus)+'</small>':''}${(it.dur||1)<1?'<span class="rapid" title="ràpid: '+it.dur+' temps">⚡</span>':''}</span>`; });
+  return out || '<span class="hint">sense cops</span>';
+}
+
+function renderSeq(){
+  const S=stateAt(t), cur=S.seg.i;
+  const opts = `<option value="">— Tothom (exemple) —</option>` + ball.balladors.map(d=>`<option value="${esc(d.id)}" ${d.id===db.me?'selected':''}>${esc(d.posicio)}${d.nom?' · '+esc(d.nom):''}</option>`).join('');
+  const who = db.me || (ball.balladors[0]&&ball.balladors[0].id);
+  let lastActe=null;
+  const items = tl.map(seg=>{
+    const f=seg.f, s=seg.seqs[who]||[];
+    const head = (f.acte && f.acte!==lastActe) ? `<li class="acte" aria-hidden="true">Acte ${esc(f.acte)}</li>` : ''; lastActe=f.acte||lastActe;
+    const curIdx = seg.i===cur && S.st[who] && S.st[who].act.type==='cop' ? S.st[who].act.idx : -1;
+    const mv = seg.move ? `<div class="hint">Desplaçament: ${seg.move} temps${f.mou.picades?` · ${f.mou.picades} picades a terra`:''}${movDesc(f,who)}</div>` : '';
+    return head + `<li class="${seg.i===cur?'cur':''}" data-fig="${seg.i}" tabindex="0">
+      <div class="t"><b>${seg.i+1}. ${esc(f.nom)}</b><span>${fmtBeat(seg.start)} · ${seg.move+seg.len} t</span></div>
+      ${mv}<div class="chips">${chipsFor(s,curIdx)}${f.dubtos?'<span class="chip warn">dubtós</span>':''}</div></li>`;
+  }).join('');
+  body.innerHTML = `<div class="stack">
+    <div class="row"><label for="meSel" class="lbl">Sóc</label><select id="meSel">${opts}</select></div>
+    <div class="hint">Tria la teva posició (o toca el teu punt a la vista zenital) per veure només els teus cops. Les etiquetes amb vora discontínua formen part d'una combinació.</div>
+    <ol class="figlist">${items}</ol></div>`;
+  body.querySelector('#meSel').onchange=e=>{ db.me=e.target.value; save(); renderCamSel(); renderPanel(); frame(true); };
+  body.querySelectorAll('[data-fig]').forEach(li=>{ const go=()=>{ jumpFig(+li.dataset.fig); }; li.onclick=go; li.onkeydown=e=>{ if(e.key==='Enter') go(); }; });
+}
+function movDesc(f, id){
+  const p=f.pos&&f.pos[id]; if(!p) return '';
+  if(p.tipus==='gir') return ` · gir de ${p.graus||360}° cap a la ${p.costat==='esquerra'?'esquerra':'dreta'}`;
+  if(p.tipus==='arc' && p.costat) return ` · corba passant per la ${p.costat}`;
+  if(p.tipus==='cercle') return ` · en cercle cap enfora`;
+  if(p.tipus==='via') return ` · camí marcat`;
+  return '';
+}
+
+function snapToFigure(i){ const s=tl[i]; t=s.start+s.move; if(playing) togglePlay(false); }
+function jumpFig(i){ i=Math.max(0,Math.min(tl.length-1,i)); const s=tl[i]; t = editing ? s.start+s.move : s.start; frame(true); renderPanel(); }
+
+function renderEdit(){
+  if(!editing){ body.innerHTML=`<div class="stack"><p>Activa <b>Edita</b> (a dalt) per modificar posicions, cops i figures.</p>
+    <p class="hint">Els canvis es guarden en aquest navegador. Quan hi hagi base de dades compartida, només els editors amb usuari podran editar; els balladors el veuran en mode lectura.</p></div>`; return; }
+  const seg=segAt(t), f=seg.f, n=sel.size;
+  const groups=[...new Set(ball.balladors.map(d=>d.posicio.replace(/\d+$/,'')))].filter(Boolean);
+  const first=n? ball.balladors.find(d=>sel.has(d.id)) : null;
+  const fp=first? posOf(f, first, ball.balladors.indexOf(first)) : {};
+  const ownSeq = first && f.seqPer && f.seqPer[first.id] ? seqText(f.seqPer[first.id]) : '';
+  body.innerHTML = `<div class="stack">
+    <div class="editbanner">Editant la figura ${seg.i+1}: arrossega balladors a la vista zenital. Maj+clic o arrossegar en buit per seleccionar-ne diversos.</div>
+    <div class="lbl">Figura</div>
+    <div class="row"><button id="fPrev" aria-label="Figura anterior">◀</button><input id="fNom" value="${esc(f.nom)}" aria-label="Nom de la figura"><button id="fNext" aria-label="Figura següent">▶</button></div>
+    <div class="row">
+      <label>Desplaçament <input id="fMouT" type="number" min="0" max="64" value="${f.mou.temps||0}" style="width:64px" ${seg.i===0?'disabled':''}> temps</label>
+      <label><input id="fPic" type="number" min="0" max="64" value="${f.mou.picades||0}" style="width:64px" ${seg.i===0?'disabled':''}> picades</label>
+    </div>
+    <label class="lbl" for="fSeq">Seqüència de cops (tothom)</label>
+    <input id="fSeq" value="${esc(seqText(f.seq))}" placeholder="p. ex. lluita, mig+passa endavant cama dreta, sotacama">
+    <div class="hint">Separa amb comes. Pots usar cops (${db.cops.map(c=>esc(norm(c.nom))).join(', ')}) o combinacions (${db.combis.map(c=>esc(norm(c.nom))).join(', ')||'cap'}). Afegeix moviment de peus amb «+».</div>
+    <label class="lbl" for="fNota">Nota</label>
+    <label>Acte <input id="fActe" type="number" min="1" max="20" value="${f.acte||''}" style="width:64px"></label>
+    <textarea id="fNota" rows="2">${esc(f.nota||'')}</textarea>
+    <label><input type="checkbox" id="fDub" ${f.dubtos?'checked':''}> Marcar com a dubtós</label>
+    <div class="row"><button id="fAdd">+ Figura nova després</button><button id="fUp">Puja</button><button id="fDown">Baixa</button><button id="fDel" class="danger">Elimina</button></div>
+    <div id="fDelConf"></div>
+    <hr>
+    <div class="lbl">Selecció: ${n} ballador${n===1?'':'s'}</div>
+    <div class="row"><button data-selall>Tots</button><button data-selnone>Cap</button>${groups.map(g=>`<button data-selg="${esc(g)}">Fila ${esc(g)}</button>`).join('')}</div>
+    ${n? `
+    <div class="row"><span class="hint">Mira cap a:</span>
+      <button data-ori="0" title="Jutges">↓ jutges</button><button data-ori="180" title="Fons">↑ fons</button><button data-ori="270">← esq.</button><button data-ori="90">→ dreta</button></div>
+    <div class="row"><span class="hint">Gira:</span><button data-rot="-90">90° dreta</button><button data-rot="90">90° esquerra</button><button data-rot="180">180°</button></div>
+    <div class="row"><span class="hint">Col·loca:</span><button data-al="h">En fila</button><button data-al="v">En columna</button><button data-al="dist">Reparteix</button>${n===2?'<button data-al="swap">Intercanvia</button>':''}<button data-al="prev">Com a l'anterior</button><button data-al="mirror" title="Passa a l'altra meitat, enmirallat">Mirall</button></div>
+    <label class="lbl">Com arriben a aquesta figura</label>
+    <div class="row">
+      <select id="mTip" aria-label="Tipus de desplaçament"><option value="lineal">Lineal</option><option value="arc">Corba (encreuament)</option><option value="cercle">En cercle (pel voltant, cap enfora)</option><option value="via">Camí marcat</option><option value="gir">Gir sobre si mateix</option></select>
+      <select id="mCos" aria-label="Costat"><option value="">—</option><option value="dreta">per la dreta</option><option value="esquerra">per l'esquerra</option></select>
+      <input id="mGr" type="number" step="45" value="${fp.graus||360}" style="width:76px" aria-label="Graus de gir"> <span class="hint">°</span>
+    </div>
+    <div class="hint">Corba per la dreta: el ballador es desvia cap a la seva dreta (útil per creuar-se amb el company).</div>
+    <label class="lbl" for="sSeq">Seqüència pròpia (substitueix la de tothom)</label>
+    <div class="row"><input id="sSeq" value="${esc(ownSeq)}" placeholder="buit = la de tothom"><button id="sApply">Aplica</button><button id="sClear">Treu</button></div>
+    ${n===1?`<label class="lbl" for="dNom">Nom del ballador a ${esc(first.posicio)}</label><input id="dNom" value="${esc(first.nom||'')}" placeholder="opcional">`:''}
+    `: '<div class="hint">Toca un ballador a la vista zenital per editar-lo.</div>'}
+  </div>`;
+  const $=s=>body.querySelector(s);
+  const commit=(re=true)=>{ if(re) rebuild(); save(); frame(true); };
+  $('#fPrev').onclick=()=>jumpFig(seg.i-1); $('#fNext').onclick=()=>jumpFig(seg.i+1);
+  $('#fNom').oninput=e=>{ f.nom=e.target.value; commit(false); };
+  $('#fMouT').onchange=e=>{ f.mou.temps=Math.max(0,+e.target.value||0); commit(); snapToFigure(seg.i); frame(true); };
+  $('#fPic').onchange=e=>{ f.mou.picades=Math.max(0,+e.target.value||0); commit(); };
+  $('#fSeq').onchange=e=>{ f.seq=textSeq(e.target.value); commit(); snapToFigure(seg.i); frame(true); };
+  $('#fNota').oninput=e=>{ f.nota=e.target.value; commit(false); };
+  $('#fActe').onchange=e=>{ const v=parseInt(e.target.value); if(v>0) f.acte=v; else delete f.acte; commit(false); };
+  $('#fDub').onchange=e=>{ f.dubtos=e.target.checked; commit(false); };
+  $('#fAdd').onclick=()=>{ const nf={id:uid('f'), acte:f.acte, nom:'Figura nova', nota:'', dubtos:false, mou:{temps:4,picades:0}, pos:clone(f.pos), seq:[], seqPer:{}};
+    for(const k in nf.pos){ delete nf.pos[k].tipus; delete nf.pos[k].costat; delete nf.pos[k].graus; }
+    ball.figures.splice(seg.i+1,0,nf); rebuild(); save(); jumpFig(seg.i+1); };
+  $('#fUp').onclick=()=>{ if(seg.i<1) return; const a=ball.figures; [a[seg.i-1],a[seg.i]]=[a[seg.i],a[seg.i-1]]; rebuild(); save(); jumpFig(seg.i-1); };
+  $('#fDown').onclick=()=>{ const a=ball.figures; if(seg.i>=a.length-1) return; [a[seg.i+1],a[seg.i]]=[a[seg.i],a[seg.i+1]]; rebuild(); save(); jumpFig(seg.i+1); };
+  $('#fDel').onclick=()=>{ if(ball.figures.length<2) return; $('#fDelConf').innerHTML=`<div class="row note">Segur que vols eliminar «${esc(f.nom)}»? <button id="fDelYes" class="danger">Sí, elimina</button><button id="fDelNo">No</button></div>`;
+    $('#fDelYes').onclick=()=>{ ball.figures.splice(seg.i,1); rebuild(); save(); jumpFig(Math.max(0,seg.i-1)); }; $('#fDelNo').onclick=()=>{ $('#fDelConf').innerHTML=''; }; };
+  body.querySelectorAll('[data-selall]').forEach(b=>b.onclick=()=>{ sel=new Set(ball.balladors.map(d=>d.id)); renderPanel(); frame(true); });
+  body.querySelectorAll('[data-selnone]').forEach(b=>b.onclick=()=>{ sel=new Set(); renderPanel(); frame(true); });
+  body.querySelectorAll('[data-selg]').forEach(b=>b.onclick=()=>{ const g=b.dataset.selg; sel=new Set(ball.balladors.filter(d=>d.posicio.replace(/\d+$/,'')===g).map(d=>d.id)); renderPanel(); frame(true); });
+  if(!n) return;
+  const each=fn=>{ ball.balladors.forEach((d,i)=>{ if(!sel.has(d.id)) return; f.pos[d.id]=Object.assign({}, posOf(f,d,i)); fn(f.pos[d.id], d, i); }); };
+  body.querySelectorAll('[data-ori]').forEach(b=>b.onclick=()=>{ each(p=>p.o=+b.dataset.ori); commit(); });
+  body.querySelectorAll('[data-rot]').forEach(b=>b.onclick=()=>{ each(p=>p.o=((p.o+ +b.dataset.rot)%360+360)%360); commit(); });
+  body.querySelectorAll('[data-al]').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.al, ids=ball.balladors.filter(d=>sel.has(d.id));
+    each(()=>{});
+    const ps=ids.map(d=>f.pos[d.id]);
+    if(k==='h'){ const y=ps.reduce((a,p)=>a+p.y,0)/ps.length; ps.forEach(p=>p.y=Math.round(y*10)/10); }
+    if(k==='v'){ const x=ps.reduce((a,p)=>a+p.x,0)/ps.length; ps.forEach(p=>p.x=Math.round(x*10)/10); }
+    if(k==='dist' && ps.length>2){ const horiz=(Math.max(...ps.map(p=>p.x))-Math.min(...ps.map(p=>p.x)))>=(Math.max(...ps.map(p=>p.y))-Math.min(...ps.map(p=>p.y)));
+      const key=horiz?'x':'y', s=[...ps].sort((a,b)=>a[key]-b[key]), a=s[0][key], z=s[s.length-1][key]; s.forEach((p,i)=>p[key]=Math.round((a+(z-a)*i/(s.length-1))*10)/10); }
+    if(k==='swap' && ps.length===2){ const [a,c]=ps; [a.x,c.x]=[c.x,a.x]; [a.y,c.y]=[c.y,a.y]; [a.o,c.o]=[c.o,a.o]; }
+    if(k==='mirror'){ const W=ball.espai.ample; ps.forEach(p=>{ p.x=Math.round((W-p.x)*10)/10; p.o=((360-p.o)%360+360)%360; if(p.costat) p.costat = p.costat==='dreta'?'esquerra':'dreta'; }); }
+    if(k==='prev' && seg.i>0){ const pf=ball.figures[seg.i-1]; ids.forEach(d=>{ const q=posOf(pf,d,ball.balladors.indexOf(d)); Object.assign(f.pos[d.id],{x:q.x,y:q.y,o:q.o}); }); }
+    commit();
+  });
+  $('#mTip').value=fp.tipus||'lineal'; $('#mCos').value=fp.costat||'';
+  const applyMov=()=>{ const tip=$('#mTip').value, cos=$('#mCos').value, gr=+$('#mGr').value||360;
+    each(p=>{ p.tipus=tip; if(cos) p.costat=cos; else delete p.costat; if(tip==='gir') p.graus=gr; else delete p.graus; }); commit(); };
+  $('#mTip').onchange=applyMov; $('#mCos').onchange=applyMov; $('#mGr').onchange=applyMov;
+  $('#sApply').onclick=()=>{ const v=textSeq($('#sSeq').value); f.seqPer=f.seqPer||{}; sel.forEach(id=>{ if(v.length) f.seqPer[id]=v.slice(); else delete f.seqPer[id]; }); commit(); renderPanel(); };
+  $('#sClear').onclick=()=>{ if(f.seqPer) sel.forEach(id=>delete f.seqPer[id]); commit(); renderPanel(); };
+  if(n===1) $('#dNom').oninput=e=>{ first.nom=e.target.value; save(); frame(true); };
+}
+
+/* ---------- repartiments de noms (p. ex. «Assaig 20/11») ---------- */
+function curRep(){ return (ball.repartiments||[]).find(r=>r.id===ball.repActiu); }
+function repOptions(){ return `<option value="">— Noms actuals —</option>` + (ball.repartiments||[]).map(r=>`<option value="${esc(r.id)}" ${r.id===ball.repActiu?'selected':''}>${esc(r.titol)}</option>`).join(''); }
+function applyRep(id){ const r=(ball.repartiments||[]).find(x=>x.id===id); ball.repActiu=r?r.id:'';
+  if(r){ ball.balladors.forEach(d=>{ d.nom=r.noms[d.id]||''; }); chkNames.checked=true; }
+  save(); renderRepSel(); renderPanel(); frame(true); }
+function renderRepSel(){ const el=document.getElementById('repSel'); const has=(ball.repartiments||[]).length>0; el.hidden=!has; if(has) el.innerHTML=repOptions(); }
+function renderBall(){
+  const m=ball.musica, e=ball.espai, ro=!editing;
+  const rows=ball.balladors.map((d,i)=>`<tr><td><input data-k="posicio" data-i="${i}" value="${esc(d.posicio)}" ${ro?'disabled':''} aria-label="Posició"></td>
+    <td><input data-k="nom" data-i="${i}" value="${esc(d.nom||'')}" placeholder="—" ${ro?'disabled':''} aria-label="Nom"></td>
+    <td><select data-k="color" data-i="${i}" ${ro?'disabled':''} aria-label="Color">${['c1','c2','c3','c4','c5','c6','c7','c8'].map(c=>`<option value="${c}" ${d.color===c?'selected':''}>${{c1:'Oliva',c2:'Fusta',c3:'Blau',c4:'Morat',c5:'Mostassa',c6:'Verd aigua',c7:'Indi',c8:'Pissarra'}[c]}</option>`).join('')}</select></td></tr>`).join('');
+  body.innerHTML=`<div class="stack">
+    ${ro?'<div class="hint">Activa «Edita» per canviar aquestes dades.</div>':''}
+    <label class="lbl" for="bNom">Nom del ball</label><input id="bNom" value="${esc(ball.nom)}" ${ro?'disabled':''}>
+    <div class="row"><label>Tempo <input id="bBpm" type="number" min="30" max="240" value="${m.bpm}" style="width:70px" ${ro?'disabled':''}> bpm</label>
+      <label><input id="bTpc" type="number" min="1" max="12" value="${m.tempsPerCompas}" style="width:56px" ${ro?'disabled':''}> temps/compàs</label></div>
+    <div class="row"><label>Espai <input id="bW" type="number" min="3" max="40" step="0.5" value="${e.ample}" style="width:70px" ${ro?'disabled':''}> m d'ample</label>
+      <label><input id="bH" type="number" min="3" max="40" step="0.5" value="${e.fons}" style="width:70px" ${ro?'disabled':''}> m de fons</label></div>
+    <div class="lbl">Àudios (${(m.audios||[]).length})</div>
+    ${(m.audios||[]).map((a,i)=>`<div class="audrow">
+      <input data-a="nom" data-i="${i}" value="${esc(a.nom)}" ${ro?'disabled':''} aria-label="Nom de l'àudio">
+      <label>Inici <input data-a="inici" data-i="${i}" type="number" step="0.01" min="0" value="${a.inici||0}" style="width:76px" ${ro?'disabled':''}> s</label>
+      <label title="Segons que sona abans del primer temps quan comences des del principi (p. ex. el compte 1, 2, 3…)">Previ <input data-a="previ" data-i="${i}" type="number" step="0.1" min="0" value="${a.previ||0}" style="width:64px" ${ro?'disabled':''}> s</label>
+      <label><input data-a="bpm" data-i="${i}" type="number" step="0.1" min="30" max="240" value="${a.bpm||m.bpm}" style="width:70px" ${ro?'disabled':''}> bpm</label>
+      ${ro?'':`<button data-adel="${i}" class="danger" aria-label="Elimina l'àudio">✕</button>`}</div>`).join('') || '<div class="hint">Cap àudio. Sona el metrònom.</div>'}
+    ${ro?'':`<label class="filebtn"><input type="file" id="aFile" accept="audio/*" hidden><span>+ Afegeix àudio</span></label>
+    <div class="hint">«Inici» és el segon de l'àudio on comença el primer temps del ball; «Previ», els segons que sonen abans (el compte) quan comences des del principi; «bpm» és el tempo d'aquell àudio. Pots tenir la cançó i el cant dels passos, i triar-los amb ♪ a dalt. Els àudios que afegeixes es guarden en aquest navegador.</div><div id="aMsg" class="hint"></div>`}
+    <hr>
+    <div class="row" style="justify-content:space-between"><span class="lbl">Balladors (${ball.balladors.length})</span>
+      ${ro?'':'<span class="row"><button id="dAdd">+ Afegeix</button><button id="dDel" class="danger">− Treu l\'últim</button></span>'}</div>
+    <div class="hint">La posició és el nom genèric (A1, B3…). El nom de la persona és opcional i es mostra amb «Noms».</div>
+    <div class="lbl">Repartiment de noms</div>
+    <div class="row"><select id="rSel" aria-label="Repartiment actiu">${repOptions()}</select>${ro?'':(ball.repActiu?'<button id="rDel" class="danger">Elimina</button>':'')}</div>
+    ${ro?'':`<div class="row"><input id="rTitol" placeholder="p. ex. Assaig 20/11" aria-label="Títol del repartiment nou"><button id="rNew">Desa com a repartiment nou</button></div>
+    <div class="hint">Els noms que canviïs a la taula es desen al repartiment triat.</div><div id="rConf"></div>`}
+    <div class="tablewrap"><table><thead><tr><th>Posició</th><th>Nom</th><th>Color</th></tr></thead><tbody>${rows}</tbody></table></div>
+  </div>`;
+  body.querySelector('#rSel').onchange=ev=>{ applyRep(ev.target.value); };
+  if(ro) return;
+  const $=s=>body.querySelector(s);
+  $('#rNew').onclick=()=>{ const t=$('#rTitol').value.trim(); if(!t){ $('#rTitol').focus(); return; }
+    const r={id:uid('rep'), titol:t, noms:{}}; ball.balladors.forEach(d=>{ if(d.nom) r.noms[d.id]=d.nom; });
+    (ball.repartiments=ball.repartiments||[]).push(r); ball.repActiu=r.id; save(); renderPanel(); renderRepSel(); };
+  if($('#rDel')) $('#rDel').onclick=()=>{ const r=curRep(); if(!r) return; $('#rConf').innerHTML=`<div class="row note">Eliminar el repartiment «${esc(r.titol)}»? <button id="rY" class="danger">Sí, elimina</button><button id="rN">No</button></div>`;
+    $('#rY').onclick=()=>{ ball.repartiments=ball.repartiments.filter(x=>x!==r); ball.repActiu=''; save(); renderPanel(); renderRepSel(); }; $('#rN').onclick=()=>{ $('#rConf').innerHTML=''; }; };
+  $('#bNom').oninput=ev=>{ ball.nom=ev.target.value; save(); renderBallSel(); };
+  body.querySelectorAll('[data-a]').forEach(inp=>{ inp.onchange=ev=>{ const a=m.audios[+inp.dataset.i], k=inp.dataset.a;
+    a[k] = k==='nom' ? ev.target.value : Math.max(k==='bpm'?30:0, +ev.target.value||0); save(); renderAudSel(); if(k==='nom') return; syncAudio(true); }; });
+  body.querySelectorAll('[data-adel]').forEach(b=>{ b.onclick=()=>{ const a=m.audios[+b.dataset.adel]; m.audios.splice(+b.dataset.adel,1);
+    if(a.idb) idbDel(a.id); if(m.audioActiu===a.id){ m.audioActiu=''; loadAudio(); } save(); renderAudSel(); renderPanel(); }; });
+  if($('#aFile')) $('#aFile').onchange=async ev=>{ const f=ev.target.files[0]; if(!f) return; $('#aMsg').textContent='Desant…';
+    const a={id:uid('aud'), nom:f.name.replace(/\.[^.]+$/,''), idb:true, inici:0, bpm:m.bpm};
+    try{ await idbPut(a.id,f); (m.audios=m.audios||[]).push(a); m.audioActiu=a.id; save(); loadAudio(); renderAudSel(); renderPanel(); }
+    catch(e){ $('#aMsg').textContent="No s'ha pogut desar l'àudio en aquest navegador."; } };
+  $('#bBpm').onchange=ev=>{ m.bpm=Math.max(30,Math.min(240,+ev.target.value||96)); renderAudSel(); save(); };
+  $('#bTpc').onchange=ev=>{ m.tempsPerCompas=Math.max(1,+ev.target.value||2); save(); renderPanel(); };
+  $('#bW').onchange=ev=>{ e.ample=Math.max(3,+ev.target.value||10); save(); frame(true); };
+  $('#bH').onchange=ev=>{ e.fons=Math.max(3,+ev.target.value||8); save(); frame(true); };
+  body.querySelectorAll('[data-k]').forEach(inp=>{ const ev=inp.tagName==='SELECT'?'onchange':'oninput';
+    inp[ev]=()=>{ const d=ball.balladors[+inp.dataset.i]; d[inp.dataset.k]=inp.value; if(inp.dataset.k==='nom'){ const r=curRep(); if(r){ if(inp.value) r.noms[d.id]=inp.value; else delete r.noms[d.id]; } } save(); frame(true); renderBallSel(); }; });
+  $('#dAdd').onclick=()=>{ const n=ball.balladors.length+1; let id='P'+n; while(ball.balladors.some(d=>d.id===id)) id+='_';
+    const d={id, posicio:'P'+n, nom:'', color:'c3'}; ball.balladors.push(d);
+    const p=defaultPos(d,ball.balladors.length-1); ball.figures.forEach(f=>{ f.pos[id]={x:Math.min(ball.espai.ample-.5,p.x), y:ball.espai.fons-1, o:0}; });
+    rebuild(); save(); renderPanel(); frame(true); };
+  $('#dDel').onclick=()=>{ if(ball.balladors.length<2) return; const d=ball.balladors.pop(); ball.figures.forEach(f=>{ delete f.pos[d.id]; if(f.seqPer) delete f.seqPer[d.id]; }); sel.delete(d.id); if(db.me===d.id) db.me='';
+    rebuild(); save(); renderPanel(); frame(true); };
+}
+
+function renderCops(){
+  const ro=!editing;
+  const cops=db.cops.map((c,i)=>ro? `<div class="copdef"><b>${esc(c.nom)}</b> <span class="hint">${c.sol?'sol':'amb el company del davant'}</span><div>${esc(c.descripcio)}</div></div>`
+    : `<div class="copdef"><div class="row"><input data-c="nom" data-i="${i}" value="${esc(c.nom)}" aria-label="Nom del cop"><label><input type="checkbox" data-c="sol" data-i="${i}" ${c.sol?'checked':''}> sol</label><button data-cdel="${i}" class="danger" aria-label="Elimina ${esc(c.nom)}">✕</button></div>
+       <textarea data-c="descripcio" data-i="${i}" rows="2" aria-label="Descripció">${esc(c.descripcio)}</textarea></div>`).join('');
+  const combis=db.combis.map((c,i)=>ro? `<div class="copdef"><b>${esc(c.nom)}</b><div class="chips">${chipsFor(expand(c.seq),-1)}</div></div>`
+    : `<div class="copdef"><div class="row"><input data-k2="nom" data-i="${i}" value="${esc(c.nom)}" aria-label="Nom de la combinació"><button data-kdel="${i}" class="danger" aria-label="Elimina">✕</button></div>
+       <input data-k2="seq" data-i="${i}" value="${esc(seqText(c.seq))}" aria-label="Seqüència"></div>`).join('');
+  body.innerHTML=`<div class="stack">
+    <h3>Cops de bastó</h3>${cops}${ro?'':'<button id="cAdd">+ Cop nou</button>'}
+    <h3>Combinacions</h3><div class="hint">Seqüències amb nom que es poden fer servir dins de qualsevol figura.</div>${combis}${ro?'':'<button id="kAdd">+ Combinació nova</button>'}
+  </div>`;
+  if(ro) return;
+  const upd=()=>{ rebuild(); save(); frame(true); };
+  body.querySelectorAll('[data-c]').forEach(el=>{ const k=el.dataset.c, i=+el.dataset.i;
+    const h=()=>{ const c=db.cops[i]; if(k==='sol') c.sol=el.checked; else c[k]=el.value; if(k==='nom' && c.id.startsWith('cop_')) {} upd(); };
+    if(el.type==='checkbox') el.onchange=h; else el.oninput=h; });
+  body.querySelectorAll('[data-cdel]').forEach(b=>b.onclick=()=>{ db.cops.splice(+b.dataset.cdel,1); upd(); renderPanel(); });
+  body.querySelectorAll('[data-k2]').forEach(el=>{ const k=el.dataset.k2, i=+el.dataset.i;
+    el.onchange=()=>{ const c=db.combis[i]; if(k==='seq') c.seq=textSeq(el.value); else { c.nom=el.value; } upd(); }; });
+  body.querySelectorAll('[data-kdel]').forEach(b=>b.onclick=()=>{ db.combis.splice(+b.dataset.kdel,1); upd(); renderPanel(); });
+  body.querySelector('#cAdd').onclick=()=>{ db.cops.push({id:uid('cop'), nom:'Cop nou', sol:false, descripcio:''}); save(); renderPanel(); };
+  body.querySelector('#kAdd').onclick=()=>{ db.combis.push({id:uid('combi'), nom:'Combinació nova', seq:['mig']}); save(); renderPanel(); };
+}
+
+function renderLib(){
+  const items=db.balls.map(b=>`<div class="item ${b.id===ball.id?'cur':''}"><div><b>${esc(b.nom)}</b><div class="hint">${b.balladors.length} balladors · ${b.figures.length} figures</div></div>
+    <div class="row"><button data-open="${esc(b.id)}">Obre</button><button data-dup="${esc(b.id)}">Duplica</button>${db.balls.length>1?`<button data-del="${esc(b.id)}" class="danger">Elimina</button>`:''}</div></div>`).join('');
+  body.innerHTML=`<div class="stack">
+    <div class="iolist">${items}</div>
+    <div id="libConf"></div>
+    <div class="row"><button id="lNew" class="primary">+ Ball nou</button><button id="lReset">Restaura l'exemple</button></div>
+    <hr>
+    <div class="lbl">Còpia de seguretat</div>
+    <div class="hint">Per ara tot es guarda en aquest navegador. Copia el text per guardar-lo o passar-lo a un altre dispositiu; enganxa'l a sota per importar.</div>
+    <div class="row"><button id="lExp">Mostra el ball actual en text</button><button id="lCopy">Copia</button></div>
+    <textarea id="lTxt" rows="5" placeholder="Enganxa aquí un ball exportat i prem Importa" spellcheck="false" style="font-family:var(--f-mono);font-size:12px"></textarea>
+    <div class="row"><button id="lImp">Importa</button><label class="hint">o fitxer <input type="file" id="lFile" accept=".json,application/json"></label></div>
+    <div id="lMsg" class="hint" role="status"></div>
+  </div>`;
+  const $=s=>body.querySelector(s), msg=s=>{$('#lMsg').textContent=s;};
+  body.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openBall(b.dataset.open));
+  body.querySelectorAll('[data-dup]').forEach(b=>b.onclick=()=>{ const src=db.balls.find(x=>x.id===b.dataset.dup); const c=clone(src); c.id=uid('ball'); c.nom=src.nom+' (còpia)'; delete c.exemple; db.balls.push(c); save(); openBall(c.id); });
+  body.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{ const id=b.dataset.del, bb=db.balls.find(x=>x.id===id);
+    $('#libConf').innerHTML=`<div class="row note">Eliminar «${esc(bb.nom)}» definitivament? <button id="dy" class="danger">Sí, elimina</button><button id="dn">No</button></div>`;
+    $('#dy').onclick=()=>{ db.balls=db.balls.filter(x=>x.id!==id); save(); openBall(db.balls[0].id); }; $('#dn').onclick=()=>{$('#libConf').innerHTML='';}; });
+  $('#lNew').onclick=()=>{ const ds=[]; for(let i=1;i<=8;i++) ds.push({id:'P'+i,posicio:'P'+i,nom:'',color:'c1'});
+    const pos={}; ds.forEach((d,i)=>pos[d.id]={x:1.5+i,y:4,o:0});
+    const nb={id:uid('ball'), nom:'Ball nou', musica:{bpm:96,tempsPerCompas:2,audios:[],audioActiu:''}, espai:{ample:10,fons:8}, balladors:ds,
+      figures:[{id:uid('f'),nom:'Formació inicial',nota:'',dubtos:false,mou:{temps:0,picades:0},pos,seq:['mig','mig'],seqPer:{}}]};
+    db.balls.push(nb); save(); openBall(nb.id); if(!editing) setEditing(true); };
+  $('#lReset').onclick=()=>{ const ex=exampleBall(); const i=db.balls.findIndex(b=>b.id===ex.id); if(i>=0) db.balls[i]=ex; else db.balls.unshift(ex);
+    db.cops=db.cops.length?db.cops:clone(COPS0); COMBIS0.forEach(c=>{ if(!db.combis.some(k=>norm(k.id)===c.id)) db.combis.push(clone(c)); });
+    save(); openBall(ex.id); };
+  $('#lExp').onclick=()=>{ $('#lTxt').value=JSON.stringify({format:'bastoners-ball-v1', ball, cops:db.cops, combinacions:db.combis}, null, 1); msg('Text a punt per copiar.'); };
+  $('#lCopy').onclick=()=>{ const ta=$('#lTxt'); if(!ta.value) $('#lExp').onclick();
+    navigator.clipboard && navigator.clipboard.writeText(ta.value).then(()=>msg('Copiat al porta-retalls.'), ()=>{ ta.select(); msg('Selecciona i copia manualment (Ctrl+C).'); }); };
+  const imp=txt=>{ try{ const o=JSON.parse(txt); const b=o.ball||o; if(!b.figures||!b.balladors) throw 0; b.id=uid('ball');
+      if(Array.isArray(o.cops)) o.cops.forEach(c=>{ if(!copById(c.nom)) db.cops.push(c); });
+      if(Array.isArray(o.combinacions)) o.combinacions.forEach(c=>{ if(!combiById(c.nom)) db.combis.push(c); });
+      db.balls.push(b); save(); openBall(b.id); msg('Importat: '+b.nom); }
+    catch(e){ msg("No s'ha pogut importar: el text no és un ball vàlid. Comprova que l'has copiat sencer."); } };
+  $('#lImp').onclick=()=>imp($('#lTxt').value);
+  $('#lFile').onchange=ev=>{ const f=ev.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>imp(r.result); r.readAsText(f); };
+}
+
+function renderPanel(){ ({seq:renderSeq, edit:renderEdit, ball:renderBall, cops:renderCops, lib:renderLib})[tab](); }
+
+/* ---------- ball actiu ---------- */
+const ballSel=document.getElementById('ballSel');
+function renderBallSel(){ ballSel.innerHTML=db.balls.map(b=>`<option value="${esc(b.id)}" ${b.id===ball.id?'selected':''}>${esc(b.nom)}</option>`).join(''); }
+ballSel.onchange=()=>openBall(ballSel.value);
+function openBall(id){ ball=db.balls.find(b=>b.id===id)||db.balls[0]; db.curId=ball.id; sel=new Set(); t=0;
+  if(db.me && !ball.balladors.some(d=>d.id===db.me)) db.me='';
+  save(); rebuild(); togglePlay(false); renderAudSel(); loadAudio(); renderBallSel(); renderRepSel(); renderPanel(); frame(true); }
+
+/* ---------- reproducció ---------- */
+const scrub=document.getElementById('scrub'), clock=document.getElementById('clock'), bpmEl=document.getElementById('bpm');
+const btnPlay=document.getElementById('btnPlay'), chkNames=document.getElementById('chkNames'), chkPaths=document.getElementById('chkPaths'), chkClick=document.getElementById('chkClick');
+let actx=null;
+function click(accent){ if(!chkClick.checked) return; try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+  const o=actx.createOscillator(), g=actx.createGain(); o.frequency.value=accent?1500:1000; g.gain.setValueAtTime(.25,actx.currentTime); g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.06);
+  o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime+.07); }catch(e){} }
+/* ---------- àudio sincronitzat ---------- */
+const aud=new Audio(); aud.preload='auto'; let audUrl='', loopT=null;
+const IDB='bastoners-audio';
+function idbOpen(){ return new Promise((ok,ko)=>{ const r=indexedDB.open(IDB,1); r.onupgradeneeded=()=>r.result.createObjectStore('f'); r.onsuccess=()=>ok(r.result); r.onerror=()=>ko(r.error); }); }
+async function idbPut(k,v){ const d=await idbOpen(); return new Promise((ok,ko)=>{ const x=d.transaction('f','readwrite'); x.objectStore('f').put(v,k); x.oncomplete=ok; x.onerror=()=>ko(x.error); }); }
+async function idbGet(k){ const d=await idbOpen(); return new Promise((ok,ko)=>{ const r=d.transaction('f').objectStore('f').get(k); r.onsuccess=()=>ok(r.result); r.onerror=()=>ko(r.error); }); }
+async function idbDel(k){ try{ const d=await idbOpen(); d.transaction('f','readwrite').objectStore('f').delete(k); }catch(_){} }
+function curAudio(){ const m=ball.musica||{}; return (m.audios||[]).find(a=>a.id===m.audioActiu); }
+function bpmNow(){ const a=curAudio(); return (a&&+a.bpm) || ball.musica.bpm || 96; }
+function audOn(){ return !!curAudio() && !!aud.src && aud.readyState>=1; }
+async function loadAudio(){ const a=curAudio(); aud.pause(); if(audUrl){ URL.revokeObjectURL(audUrl); audUrl=''; }
+  if(!a){ aud.removeAttribute('src'); aud.load(); return; }
+  if(a.idb){ try{ const b=await idbGet(a.id); if(b){ audUrl=URL.createObjectURL(b); aud.src=audUrl; } else aud.removeAttribute('src'); }catch(_){ aud.removeAttribute('src'); } }
+  else aud.src=a.src;
+  if(playing) syncAudio(true); }
+function syncAudio(seek){ const a=curAudio(); if(!a || !aud.getAttribute('src')) return;
+  if(!playing){ aud.pause(); return; }
+  if(seek || aud.paused){ aud.currentTime=Math.max(0,(+a.inici||0)+t*60/bpmNow() - (t<0.05 ? (+a.previ||0) : 0)); } // des del principi: sona el compte previ
+  if(aud.paused) aud.play().catch(()=>{}); loopT=t; }
+function renderAudSel(){ const el=document.getElementById('audSel'), m=ball.musica;
+  el.innerHTML=`<option value="">Cap (metrònom)</option>`+(m.audios||[]).map(a=>`<option value="${esc(a.id)}" ${a.id===m.audioActiu?'selected':''}>${esc(a.nom)}</option>`).join('');
+  bpmEl.value=Math.round(bpmNow()*10)/10; }
+document.getElementById('audSel').onchange=e=>{ ball.musica.audioActiu=e.target.value; save(); renderAudSel(); loadAudio(); };
+function togglePlay(on){ playing = on===undefined ? !playing : on; if(playing && t>=total-0.01) t=0; syncAudio(true);
+  if(playing && chkClick.checked){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); actx.resume(); }catch(e){} }
+  btnPlay.textContent = playing ? '❚❚ Pausa' : '▶ Play'; lastBeat=Math.floor(t)-1; }
+btnPlay.onclick=()=>togglePlay();
+document.getElementById('btnPrev').onclick=()=>{ const s=segAt(t); jumpFig(t-s.start>0.5 && !editing ? s.i : s.i-1); };
+document.getElementById('btnNext').onclick=()=>jumpFig(segAt(t).i+1);
+// pas a pas: es para i avança o retrocedeix un temps (es queda al moment del cop)
+function stepBeat(d){ togglePlay(false); const b=Math.floor(t+0.001)+d; t=Math.max(0,Math.min(total-0.001, b+0.35)); if(b<0) t=0.35; const bt=Math.floor(t); click(bt%(ball.musica.tempsPerCompas||2)===0); frame(true); renderPanel(); }
+document.getElementById('btnBack').onclick=()=>stepBeat(-1);
+document.getElementById('btnFwd').onclick=()=>stepBeat(1);
+scrub.oninput=()=>{ t=+scrub.value; if(t>=total) t=total-0.001; frame(true); };
+scrub.onchange=()=>renderPanel();
+bpmEl.onchange=()=>{ const v=Math.max(30,Math.min(240,+bpmEl.value||96)), a=curAudio(); if(a) a.bpm=v; else ball.musica.bpm=v; bpmEl.value=v; save(); syncAudio(true); if(tab==='ball') renderPanel(); };
+chkNames.onchange=()=>frame(true); document.getElementById('repSel').onchange=e=>applyRep(e.target.value); chkPaths.onchange=()=>frame(true);
+document.addEventListener('keydown',e=>{ if(e.target.closest('input,textarea,select')) return; if(e.code==='Space'){ e.preventDefault(); togglePlay(); } if(e.key==='ArrowRight') stepBeat(1); if(e.key==='ArrowLeft') stepBeat(-1); if(e.key==='PageDown') jumpFig(segAt(t).i+1); if(e.key==='PageUp') jumpFig(segAt(t).i-1); });
+
+function setEditing(on){ editing=on; document.getElementById('btnEdit').setAttribute('aria-pressed', on); if(on){ togglePlay(false); snapToFigure(segAt(t).i); tab='edit'; } else sel=new Set(); renderTabs(); renderPanel(); frame(true); }
+document.getElementById('btnEdit').onclick=()=>setEditing(!editing);
+
+let lastFig=-1, lastPanelBeat=-1, prevTs=0;
+function frame(force){
+  const S=stateAt(Math.min(t,total-0.0001));
+  drawZen(S); drawFront(S); renderNow(S);
+  scrub.value=t;
+  const tpc=ball.musica.tempsPerCompas||2, bt=Math.floor(t);
+  clock.textContent=`Compàs ${Math.floor(bt/tpc)+1} · temps ${bt%tpc+1}`;
+  if(!force && tab==='seq' && (S.seg.i!==lastFig || bt!==lastPanelBeat)) renderPanel();
+  lastFig=S.seg.i; lastPanelBeat=bt;
+}
+function loop(ts){
+  const dt=prevTs? Math.min(.1,(ts-prevTs)/1000) : 0; prevTs=ts;
+  if(playing){ const a=curAudio();
+    if(loopT!==null && Math.abs(t-loopT)>0.01) syncAudio(true); // s'ha mogut la posició (barra, botons)
+    if(a && aud.getAttribute('src') && !aud.ended){
+      // l'àudio mana: mentre encara no sona (carregant), l'animació s'espera
+      if(!aud.paused && aud.readyState>=3 && !aud.seeking) t=Math.max(0,(aud.currentTime-(+a.inici||0))*bpmNow()/60);
+    } else t+=dt*bpmNow()/60;
+    const b=Math.floor(t);
+    if(b!==lastBeat){ lastBeat=b; if(t<total) click(b%(ball.musica.tempsPerCompas||2)===0); }
+    if(t>=total){ t=total-0.001; togglePlay(false); renderPanel(); }
+    loopT=t; frame(false);
+  }
+  requestAnimationFrame(loop);
+}
+window.addEventListener('resize',()=>frame(true));
+if(window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>frame(true));
+
+try{ const st=localStorage.getItem(KEY+'.tab'); if(st && TABS.some(x=>x[0]===st)) tab=st; }catch(e){}
+if(tab==='edit') tab='seq';
+renderAudSel(); loadAudio();
+rebuild(); renderBallSel(); renderRepSel(); renderCamSel(); renderTabs(); renderPanel(); frame(true);
+requestAnimationFrame(loop);
+document.fonts && document.fonts.ready.then(()=>frame(true));
+</script>
