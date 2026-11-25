@@ -744,6 +744,106 @@ document.getElementById('camElR').addEventListener('change',saveCam);
 const camEnd=()=>{ if(camDrag){ camDrag=null; saveCam(); } };
 cv.addEventListener('pointerup',camEnd); cv.addEventListener('pointercancel',camEnd);
 
+/* ---------- ninot 3D: vestit de bastoner (mocador, faldelló i polaines del color de la parella) ---------- */
+const FIG={skin:'#e2ad88', hairD:'#5a3920', hairH:'#3a281b', white:'#f5f3ec', black:'#262522', bell:'#d4ad45', ol:'rgba(48,34,26,.5)', eye:'#2e2119'};
+function ik(A,B,l1,l2,pole){ // articulació (colze/genoll) entre A i B
+  const d=[B[0]-A[0],B[1]-A[1],B[2]-A[2]], L=Math.hypot(d[0],d[1],d[2])||1e-6, u=d.map(v=>v/L), Lc=Math.min(L,l1+l2-1e-4);
+  const a=(l1*l1-l2*l2+Lc*Lc)/(2*Lc), h=Math.sqrt(Math.max(0,l1*l1-a*a)), pd=pole[0]*u[0]+pole[1]*u[1]+pole[2]*u[2];
+  let p=[pole[0]-u[0]*pd,pole[1]-u[1]*pd,pole[2]-u[2]*pd]; const pn=Math.hypot(p[0],p[1],p[2])||1; p=p.map(v=>v/pn);
+  return [A[0]+u[0]*a+p[0]*h, A[1]+u[1]*a+p[1]*h, A[2]+u[2]*a+p[2]*h]; }
+const L3=(a,b,k)=>[a[0]+(b[0]-a[0])*k, a[1]+(b[1]-a[1])*k, a[2]+(b[2]-a[2])*k];
+const _rgb={}, _tint={}, LIGHT=[-0.55,-0.83]; // llum de dalt a l'esquerra
+function toRGB(c){ if(_rgb[c]) return _rgb[c]; let r=[136,136,136], m;
+  if((m=/^#([0-9a-f]{6})$/i.exec(c))){ const n=parseInt(m[1],16); r=[n>>16,(n>>8)&255,n&255]; }
+  else if((m=/hsl\(\s*([\d.]+)(?:deg)?[\s,]+([\d.]+)%[\s,]+([\d.]+)%/.exec(c))){ const h=+m[1]/360, s=+m[2]/100, l=+m[3]/100, a=s*Math.min(l,1-l);
+    const f=n=>{ const k=(n+h*12)%12; return Math.round(255*(l-a*Math.max(-1,Math.min(k-3,9-k,1)))); }; r=[f(0),f(8),f(4)]; }
+  else if((m=/rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/.exec(c))) r=[+m[1],+m[2],+m[3]];
+  return _rgb[c]=r; }
+function tint(c,k){ const key=c+'|'+k; if(_tint[key]) return _tint[key]; const q=toRGB(c), t=k>0?255:0, a=Math.abs(k);
+  return _tint[key]=`rgb(${q.map(v=>Math.round(v+(t-v)*a)).join(',')})`; }
+function volGrad(x0,y0,x1,y1,c){ // degradat de costat il·luminat (x0,y0) a costat fosc (x1,y1)
+  if((x1-x0)*LIGHT[0]+(y1-y0)*LIGHT[1]>0){ [x0,y0,x1,y1]=[x1,y1,x0,y0]; }
+  const g=ctx.createLinearGradient(x0,y0,x1,y1); g.addColorStop(0,tint(c,.3)); g.addColorStop(.32,c); g.addColorStop(.78,tint(c,-.2)); g.addColorStop(1,tint(c,-.38)); return g; }
+function segPath(a,b,ra,rb){ const an=Math.atan2(b[1]-a[1],b[0]-a[0]); ctx.beginPath(); ctx.arc(b[0],b[1],Math.max(.3,rb),an+Math.PI/2,an-Math.PI/2,true); ctx.arc(a[0],a[1],Math.max(.3,ra),an-Math.PI/2,an+Math.PI/2,true); ctx.closePath(); }
+function drawParts(items, olw){ // primer tots els contorns del grup (silueta), després els farcits amb volum
+  const path=(it,e)=>{ if(it.s) segPath(it.s[0],it.s[1],it.w[0]/2+e,it.w[1]/2+e);
+    else if(it.p){ ctx.beginPath(); it.p.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])); ctx.closePath(); }
+    else { ctx.beginPath(); ctx.ellipse(it.d[0],it.d[1],it.r+e,(it.ry||it.r)+e,0,0,Math.PI*2); } };
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  items.forEach(it=>{ if(it.f||it.no) return; path(it,olw); ctx.fillStyle=ctx.strokeStyle=FIG.ol; if(it.p){ ctx.lineWidth=(it.w||0)+2*olw; ctx.stroke(); } ctx.fill(); });
+  items.forEach(it=>{ if(it.f){ it.f(); return; } path(it,0); let g;
+    if(it.s){ const [a,b]=it.s, dx=b[0]-a[0], dy=b[1]-a[1], L=Math.hypot(dx,dy)||1, r=Math.max(it.w[0],it.w[1])/2, nx=-dy/L*r, ny=dx/L*r, mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2; g=volGrad(mx+nx,my+ny,mx-nx,my-ny,it.c); }
+    else if(it.p){ g=it.g ? volGrad(it.g[0][0],it.g[0][1],it.g[1][0],it.g[1][1],it.c) : it.c; }
+    else { const r=it.r, ox=it.d[0]+LIGHT[0]*r*.4, oy=it.d[1]+LIGHT[1]*r*.4; g=ctx.createRadialGradient(ox,oy,r*.1,it.d[0],it.d[1],r*1.05); g.addColorStop(0,tint(it.c,.22)); g.addColorStop(.55,it.c); g.addColorStop(1,tint(it.c,-.3)); }
+    ctx.fillStyle=ctx.strokeStyle=g; if(it.p && it.w){ ctx.lineWidth=it.w; ctx.stroke(); } ctx.fill(); });
+}
+function drawDancer(W3, sc, col, wood, home, k){
+  const {pose,R,amt,crouch,jump,step,leg,hipB,hip,sh,shF,head,hdF}=k, olw=Math.max(.5,sc*.008), P=p=>W3(p[0],p[1],p[2]);
+  const T=(u,r)=>[hipB+u*(shF-hipB), r, hip+u*(sh-hip)]; // punt del tronc (u=0 maluc, u=1 espatlles)
+  const th=sc*.09, trim=tint(col,-.45);
+  const c0=P(T(.5,0)), cF=W3(T(.5,0)[0]+.1,0,T(.5,0)[2]), face=(c0[2]-cF[2])/.1; // >0: mira cap a la càmera
+  const shape=(us,ws)=>{ const L=us.map((u,i)=>P(T(u,-ws[i]))), Rr=us.map((u,i)=>P(T(u,ws[i]))).reverse(); return L.concat(Rr); };
+  const axis=u=>[P(T(u,-.2)),P(T(u,.2))];
+  // --- cames: malla blanca, polaina del color amb llaços negres i picarols, espardenya blanca
+  const legs=[], kneeOf={};
+  [[1,[step,.1,jump]],[-1, leg ? [.55*leg,-.1,.42*leg+jump] : [0,-.1,jump]]].forEach(([sd,ft])=>{
+    const hp=[hipB,.085*sd,hip], an=[ft[0],ft[1],ft[2]+.07], kn=ik(hp,an,.45,.45,[1,.12*sd,0]); kneeOf[sd]=[hp,kn];
+    const lf=sd<0?leg:0, toe=[ft[0]+.15-.06*lf, ft[1], ft[2]+.025-.1*lf], heel=[ft[0]-.045,ft[1],ft[2]+.04];
+    const Pk0=P(kn), Pk=P(L3(kn,an,.14)), Pa=P(an);
+    const it=[{s:[P(hp),Pk0],w:[sc*.15,sc*.1],c:FIG.white},{s:[Pk0,Pk],w:[sc*.1,sc*.1],c:FIG.white},{s:[Pk,Pa],w:[sc*.115,sc*.085],c:col},{s:[P(heel),P(toe)],w:[sc*.075,sc*.06],c:FIG.white}];
+    it.push({f:()=>{ const dx=Pa[0]-Pk[0], dy=Pa[1]-Pk[1], L=Math.hypot(dx,dy)||1;
+      ctx.strokeStyle=FIG.black; ctx.lineCap='butt';
+      [.1,.5,.9].forEach(t=>{ const w=sc*(.115-.03*t)*.62, nx=-dy/L*w, ny=dx/L*w, x=Pk[0]+dx*t, y=Pk[1]+dy*t; ctx.lineWidth=Math.max(.8,sc*.022);
+        ctx.beginPath(); ctx.moveTo(x-nx,y-ny); ctx.lineTo(x+nx,y+ny); ctx.stroke();
+        ctx.lineWidth=Math.max(.6,sc*.012); ctx.beginPath(); ctx.moveTo(x+nx*.9,y+ny*.9); ctx.lineTo(x+nx*1.25+dx/L*sc*.03,y+ny*1.25+dy/L*sc*.03); ctx.stroke(); }); // llaç
+      [.3,.7].forEach(t=>{ const w=sc*.03, x=Pk[0]+dx*t-dy/L*w, y=Pk[1]+dy*t+dx/L*w, r=Math.max(.8,sc*.014);
+        const g=ctx.createRadialGradient(x-r*.3,y-r*.3,r*.1,x,y,r); g.addColorStop(0,'#fff3c4'); g.addColorStop(1,'#a88424'); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); });
+      ctx.lineCap='round'; }});
+    legs.push({z:(Pk0[2]+Pa[2])/2, it});
+  });
+  legs.sort((a,b)=>b.z-a.z).forEach(g=>drawParts(g.it,olw));
+  // --- braços nus i bastons
+  const groups=[];
+  [['R','Rd',1],['L','Ld',-1]].forEach(([hk,dk,sd])=>{
+    const hnd=lerp3(R[hk],pose[hk],amt), dv=lerp3(R[dk],pose[dk],amt), hz=hnd[2]*(hnd[2]<1?crouch:1)+jump;
+    const s=T(.92,(home?.185:.16)*sd), hd=[hnd[0],hnd[1],hz], el=ik(s,hd,.29,.27,[-.5,.9*sd,-.5]);
+    const n=Math.hypot(dv[0],dv[1],dv[2])||1, u=dv.map(v=>v/n), tip=[hd[0]+u[0]*.6,hd[1]+u[1]*.6,Math.max(0,hd[2]+u[2]*.6)], butt=[hd[0]-u[0]*.07,hd[1]-u[1]*.07,hd[2]-u[2]*.07];
+    const Pe=P(el), Ph=P(hd), Ps=P(s);
+    groups.push({z:(Pe[2]+Ph[2])/2, it:[{s:[P(butt),P(tip)],w:[sc*.042,sc*.036],c:wood},
+      {d:Ps,r:sc*(home?.055:.048),c:FIG.skin},{s:[Ps,Pe],w:[sc*(home?.095:.08),sc*(home?.07:.062)],c:FIG.skin},{s:[Pe,Ph],w:[sc*(home?.07:.062),sc*.05],c:FIG.skin},{d:Ph,r:sc*.045,ry:sc*.05,c:FIG.skin}]});
+  });
+  // --- cos: camisa blanca, faldelló tallat en diagonal, faixa negra, mocador, cap
+  const body=[], hw=home?.135:.14;
+  const hc=[hdF,0,head], Phc=P(hc), rH=sc*.098;
+  body.push({s:[P(T(.86,0)),P(L3(T(1,0),hc,.5))],w:[sc*.085,sc*.07],c:FIG.skin});
+  body.push({p:shape([.3,.5,.72,.9,.97], home?[.135,.135,.15,.165,.15]:[.135,.12,.14,.145,.13]),w:th,c:FIG.white,g:axis(.7)});
+  const [hpR,knR]=kneeOf[1], [hpL,knL]=kneeOf[-1], hemR=L3(hpR,knR,.55), hemL=L3(hpL,knL,.28);
+  const skirt=[P(T(.12,-hw-.02)),P(T(.12,hw+.02)),P([hemR[0],hw+.06,hemR[2]]),P([hemL[0],-hw-.05,hemL[2]])];
+  body.push({p:skirt,w:th*1.1,c:col,g:[skirt[3],skirt[2]]});
+  body.push({f:()=>{ ctx.strokeStyle=trim; ctx.lineWidth=Math.max(1,sc*.022); ctx.beginPath(); ctx.moveTo(skirt[3][0],skirt[3][1]); ctx.lineTo(skirt[2][0],skirt[2][1]); ctx.stroke(); }});
+  body.push({p:shape([.13,.22,.31],[hw+.045,hw+.04,hw+.03]),w:th*.55,c:FIG.black,g:axis(.22),no:1});
+  // mocador: volta al coll i triangle amb el nus al davant
+  body.push({s:[P(T(.97,-.07)),P(T(.97,.07))],w:[sc*.05,sc*.05],c:col,no:1});
+  if(face>-0.25){ const b0=T(.97,0), tp=T(.7,0); const tri=[P([b0[0]+.06,-.085,b0[2]]),P([b0[0]+.06,.085,b0[2]]),P([tp[0]+.09,0,tp[2]])]; body.push({p:tri,w:0,c:col,g:[tri[0],tri[1]],no:1}); }
+  // cap: orelles, cara, cabell (dona: monyo; home: curt)
+  const bun=[hdF-.115,0,head+.04], Pb=P(bun), bunIt={d:Pb,r:rH*.5,c:FIG.hairD};
+  if(!home && Pb[2]>Phc[2]) body.push(bunIt);
+  body.push({d:Phc,r:rH,ry:rH*1.13,c:FIG.skin});
+  body.push({f:()=>{
+    if(face>.2 && rH>5){ ctx.globalAlpha=Math.min(1,(face-.2)*2); ctx.fillStyle=FIG.eye;
+      [-1,1].forEach(s=>{ const e=W3(hdF+.09,.034*s,head+.012); ctx.beginPath(); ctx.ellipse(e[0],e[1],Math.max(.6,rH*.1),Math.max(.6,rH*.07),0,0,Math.PI*2); ctx.fill(); });
+      const m=W3(hdF+.095,0,head-.05); ctx.strokeStyle=tint(FIG.skin,-.35); ctx.lineWidth=Math.max(.6,rH*.06); ctx.beginPath(); ctx.moveTo(m[0]-rH*.16,m[1]); ctx.quadraticCurveTo(m[0],m[1]+rH*.07,m[0]+rH*.16,m[1]); ctx.stroke();
+      ctx.globalAlpha=1; }
+    const back=P([hdF-.11,0,head]), bx=back[0]-Phc[0], by=back[1]-Phc[1], hc2=home?FIG.hairH:FIG.hairD;
+    ctx.save(); ctx.beginPath(); ctx.ellipse(Phc[0],Phc[1],rH,rH*1.13,0,0,Math.PI*2); ctx.clip();
+    const up=rH*(home?0.8:0.66)*(1+Math.max(-1,Math.min(1,face))), hx=Phc[0]+bx*.6, hy=Phc[1]+by*.6-up, hr=rH*(home?1.02:1.08);
+    const g=ctx.createRadialGradient(hx+LIGHT[0]*hr*.4,hy+LIGHT[1]*hr*.4,hr*.1,hx,hy,hr); g.addColorStop(0,tint(hc2,.25)); g.addColorStop(1,tint(hc2,-.25));
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(hx,hy,hr,0,Math.PI*2); ctx.fill(); ctx.restore(); }});
+  if(!home && Pb[2]<=Phc[2]) body.push(bunIt);
+  groups.push({z:c0[2], it:body});
+  groups.sort((a,b)=>b.z-a.z).forEach(g=>drawParts(g.it,olw));
+}
+
 function drawFront(S){
   if(camMode==='meva' && !camAnim){ const tg=camTarget(S), d=wrap180(tg-camAng); camAng += Math.abs(d)<0.5 ? d : d*0.12; }
   const dpr=Math.min(2, window.devicePixelRatio||1), w=cv.clientWidth, h=cv.clientHeight;
@@ -799,34 +899,10 @@ function drawFront(S){
     const col=cssVar('--'+(d.color||'c1'));
     const dep=Math.max(0.5,depR(rot(s.x,s.y)[1],1)), sc=F/dep;
     const cr=1-crouch, ba=bend*Math.PI/4+cr*1.1, hipB=-.18*cr/.4, hip=(0.92-0.14*bend)*crouch+jump, sh=hip+0.5*Math.cos(ba), shF=hipB+0.5*Math.sin(ba), head=hip+0.7*Math.cos(ba), hdF=hipB+0.7*Math.sin(ba);
-    if(d.id===db.me){ const p=W3(0,0,0); ctx.strokeStyle=C.faixa; ctx.lineWidth=2.5; ctx.beginPath(); ctx.ellipse(p[0],p[1],sc*.42,sc*.1,0,0,Math.PI*2); ctx.stroke(); }
-    const line=(a,b,lw,stroke)=>{ ctx.strokeStyle=stroke; ctx.lineWidth=lw; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); };
-    const bw=Math.max(2,sc*.13), aw=Math.max(1.5,sc*.07), sw=Math.max(1.5,sc*.045);
-    // cames
-    // genolls una mica flexionats quan van doblegats (translacions)
-    // cama de dos segments (cuixa + canyella): si el maluc baixa, el genoll surt endavant
-    const leg2=(fx,r)=>{ const hx=hipB, hz=hip, dx=fx-hx, dz=jump-hz, dd=Math.hypot(dx,dz), Lg=.47;
-      const k2=Math.sqrt(Math.max(0,Lg*Lg-dd*dd/4)) + .2*bend*(1-cr/.4), mx=(hx+fx)/2, mz=(hz+jump)/2, nx=-dz/dd, nz=dx/dd;
-      const kn=W3(mx+Math.abs(nx)*k2, r, mz+nz*k2*Math.sign(nx||1)*0);
-      line(W3(fx,r,jump),kn,bw,col); line(kn,W3(hx,r*.85,hip),bw,col); };
-    leg2(step,.12);
-    if(leg){ // cama esquerra aixecada: cuixa endavant i canyella cap avall
-      const kn=W3(.42*leg,-.12,lerp(hip*.5,hip-.05,leg)+jump), ft=W3(.6*leg,-.12,lerp(0,.4,leg)+jump);
-      line(W3(hipB,-.1,hip), kn, bw, col); line(kn, ft, bw, col);
-    } else leg2(0,-.12);
-    // tronc i cap
-    line(W3(hipB,0,hip), W3(shF,0,sh), bw*1.5, col);
-    ctx.fillStyle=col; const hp=W3(hdF,0,head); ctx.beginPath(); ctx.arc(hp[0],hp[1],Math.max(3,sc*.12),0,Math.PI*2); ctx.fill();
-    // braços i bastons
-    [['R','Rd',.2],['L','Ld',-.2]].forEach(([hk,dk,side])=>{
-      const hnd=lerp3(R[hk],pose[hk],amt), dv=lerp3(R[dk],pose[dk],amt);
-      const hz=hnd[2]*(hk==='R'||!pose.crouch?1:1)*(hnd[2]<1?crouch:1)+jump;
-      const a=W3(shF,side,sh-.05), b=W3(hnd[0],hnd[1],hz);
-      line(a,b,aw,col);
-      const n=Math.hypot(dv[0],dv[1],dv[2])||1, L=.6;
-      const tip=W3(hnd[0]+dv[0]/n*L, hnd[1]+dv[1]/n*L, Math.max(0,hz+dv[2]/n*L));
-      line(b,tip,sw,C.wood);
-    });
+    // ombra a terra
+    { const p=W3(0,0,0); ctx.fillStyle='rgba(0,0,0,.14)'; ctx.beginPath(); ctx.ellipse(p[0],p[1],sc*.3,sc*.3*Math.max(.25,se),0,0,Math.PI*2); ctx.fill(); }
+    if(d.id===db.me){ const p=W3(0,0,0); ctx.strokeStyle=C.faixa; ctx.lineWidth=2.5; ctx.beginPath(); ctx.ellipse(p[0],p[1],sc*.42,sc*.42*Math.max(.25,se),0,0,Math.PI*2); ctx.stroke(); }
+    drawDancer(W3, sc, col, C.wood, d.sexe==='h', {pose,R,amt,crouch,jump,step,leg,hipB,hip,sh,shF,head,hdF});
     // etiqueta
     const lp=W3(hdF,0,head+0.32); ctx.fillStyle=d.id===db.me?C.faixa:C.ink;
     ctx.font=`600 ${Math.max(9,Math.min(13,sc*.2))}px Inter, system-ui, sans-serif`; ctx.textAlign='center';
@@ -997,13 +1073,14 @@ function renderEdit(){
 function curRep(){ return (ball.repartiments||[]).find(r=>r.id===ball.repActiu); }
 function repOptions(){ return `<option value="">— Noms actuals —</option>` + (ball.repartiments||[]).map(r=>`<option value="${esc(r.id)}" ${r.id===ball.repActiu?'selected':''}>${esc(r.titol)}</option>`).join(''); }
 function applyRep(id){ const r=(ball.repartiments||[]).find(x=>x.id===id); ball.repActiu=r?r.id:'';
-  if(r){ ball.balladors.forEach(d=>{ d.nom=r.noms[d.id]||''; }); chkNames.checked=true; }
+  if(r){ ball.balladors.forEach(d=>{ d.nom=r.noms[d.id]||''; if(r.sexes && r.sexes[d.id]) d.sexe=r.sexes[d.id]; }); chkNames.checked=true; }
   save(); renderRepSel(); renderPanel(); frame(true); }
 function renderRepSel(){ const el=document.getElementById('repSel'); const has=(ball.repartiments||[]).length>0; el.hidden=!has; if(has) el.innerHTML=repOptions(); }
 function renderBall(){
   const m=ball.musica, e=ball.espai, ro=!editing;
   const rows=ball.balladors.map((d,i)=>`<tr><td><input data-k="posicio" data-i="${i}" value="${esc(d.posicio)}" ${ro?'disabled':''} aria-label="Posició"></td>
     <td><input data-k="nom" data-i="${i}" value="${esc(d.nom||'')}" placeholder="—" ${ro?'disabled':''} aria-label="Nom"></td>
+    <td><select data-k="sexe" data-i="${i}" ${ro?'disabled':''} aria-label="Home o dona"><option value="d" ${d.sexe!=='h'?'selected':''}>Dona</option><option value="h" ${d.sexe==='h'?'selected':''}>Home</option></select></td>
     <td><select data-k="color" data-i="${i}" ${ro?'disabled':''} aria-label="Color">${colorOptions(d.color)}</select></td></tr>`).join('');
   body.innerHTML=`<div class="stack">
     ${ro?'<div class="hint">Activa «Edita» per canviar aquestes dades.</div>':''}
@@ -1029,13 +1106,13 @@ function renderBall(){
     <div class="row"><select id="rSel" aria-label="Repartiment actiu">${repOptions()}</select>${ro?'':(ball.repActiu?'<button id="rDel" class="danger">Elimina</button>':'')}</div>
     ${ro?'':`<div class="row"><input id="rTitol" placeholder="p. ex. Assaig 20/11" aria-label="Títol del repartiment nou"><button id="rNew">Desa com a repartiment nou</button></div>
     <div class="hint">Els noms que canviïs a la taula es desen al repartiment triat.</div><div id="rConf"></div>`}
-    <div class="tablewrap"><table><thead><tr><th>Posició</th><th>Nom</th><th>Color</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="tablewrap"><table><thead><tr><th>Posició</th><th>Nom</th><th>Ninot</th><th>Color</th></tr></thead><tbody>${rows}</tbody></table></div>
   </div>`;
   body.querySelector('#rSel').onchange=ev=>{ applyRep(ev.target.value); };
   if(ro) return;
   const $=s=>body.querySelector(s);
   $('#rNew').onclick=()=>{ const t=$('#rTitol').value.trim(); if(!t){ $('#rTitol').focus(); return; }
-    const r={id:uid('rep'), titol:t, noms:{}}; ball.balladors.forEach(d=>{ if(d.nom) r.noms[d.id]=d.nom; });
+    const r={id:uid('rep'), titol:t, noms:{}, sexes:{}}; ball.balladors.forEach(d=>{ if(d.nom) r.noms[d.id]=d.nom; if(d.sexe) r.sexes[d.id]=d.sexe; });
     (ball.repartiments=ball.repartiments||[]).push(r); ball.repActiu=r.id; save(); renderPanel(); renderRepSel(); };
   if($('#rDel')) $('#rDel').onclick=()=>{ const r=curRep(); if(!r) return; $('#rConf').innerHTML=`<div class="row note">Eliminar el repartiment «${esc(r.titol)}»? <button id="rY" class="danger">Sí, elimina</button><button id="rN">No</button></div>`;
     $('#rY').onclick=()=>{ ball.repartiments=ball.repartiments.filter(x=>x!==r); ball.repActiu=''; save(); renderPanel(); renderRepSel(); }; $('#rN').onclick=()=>{ $('#rConf').innerHTML=''; }; };
@@ -1053,7 +1130,7 @@ function renderBall(){
   $('#bW').onchange=ev=>{ e.ample=Math.max(3,+ev.target.value||10); save(); frame(true); };
   $('#bH').onchange=ev=>{ e.fons=Math.max(3,+ev.target.value||8); save(); frame(true); };
   body.querySelectorAll('[data-k]').forEach(inp=>{ const ev=inp.tagName==='SELECT'?'onchange':'oninput';
-    inp[ev]=()=>{ const d=ball.balladors[+inp.dataset.i]; d[inp.dataset.k]=inp.value; if(inp.dataset.k==='nom'){ const r=curRep(); if(r){ if(inp.value) r.noms[d.id]=inp.value; else delete r.noms[d.id]; } } save(); frame(true); renderBallSel(); }; });
+    inp[ev]=()=>{ const d=ball.balladors[+inp.dataset.i]; d[inp.dataset.k]=inp.value; if(inp.dataset.k==='nom'){ const r=curRep(); if(r){ if(inp.value) r.noms[d.id]=inp.value; else delete r.noms[d.id]; } } if(inp.dataset.k==='sexe'){ const r=curRep(); if(r) (r.sexes=r.sexes||{})[d.id]=inp.value; } save(); frame(true); renderBallSel(); }; });
   $('#dAdd').onclick=()=>{ // afegeix una parella nova (A i B amb el número següent)
     let k=1; while(ball.balladors.some(d=>d.id==='A'+k||d.id==='B'+k)) k++;
     const W=ball.espai.ample, H=ball.espai.fons, xs=ball.balladors.map(d=>(ball.figures[0].pos[d.id]||{}).x||0), x=Math.min(W-.4, (xs.length?Math.max(...xs):0)+1.2);
