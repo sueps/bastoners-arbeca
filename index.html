@@ -124,6 +124,11 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .iolist .item{display:flex;justify-content:space-between;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;flex-wrap:wrap}
 .iolist .item.cur{border-color:var(--olive)}
 [hidden]{display:none!important}
+#btnPassos{display:none}
+@media (max-width:1100px){#btnPassos{display:inline-flex}}
+body.nopassos .panel{display:none}
+body.nopassos .layout{grid-template-columns:minmax(0,1fr)}
+@media (max-width:1100px) and (orientation:landscape){body.nopassos .views{grid-template-columns:2fr 1fr}}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media (prefers-reduced-motion: reduce){*{scroll-behavior:auto}}
 </style>
@@ -163,6 +168,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
   <label title="Temps per minut" class="bpmwrap"><input type="number" id="bpm" class="bpm" min="30" max="240" step="0.1"> bpm</label>
   <label><input type="checkbox" id="chkClick"> Metrònom</label>
   <label class="audwrap" title="Àudio que sona amb el ball">♪ <select id="audSel" aria-label="Àudio"></select></label>
+  <button id="btnPassos" aria-pressed="false" title="Amaga o mostra la llista de passos">☰ Amaga passos</button>
 </div>
 
 <main class="layout">
@@ -1355,4 +1361,10 @@ document.fonts && document.fonts.ready.then(()=>frame(true));
   estat('Connectant…');
   comprovaEditor().then(baixa).catch(e=>{ console.warn('[núvol]', e); estat('Sense connexió · dades locals', true); });
 })();
+</script>
+<script>
+(()=>{const b=document.getElementById('btnPassos'),K='bastoners.nopassos';
+const set=on=>{document.body.classList.toggle('nopassos',on);b.setAttribute('aria-pressed',on);b.textContent=on?'☰ Mostra passos':'☰ Amaga passos';try{localStorage.setItem(K,on?'1':'')}catch(e){}window.dispatchEvent(new Event('resize'))};
+let on=false;try{on=localStorage.getItem(K)==='1'}catch(e){}set(on);
+b.addEventListener('click',()=>set(!document.body.classList.contains('nopassos')));})();
 </script>
