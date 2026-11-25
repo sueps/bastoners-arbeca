@@ -328,14 +328,16 @@ const KEY = 'bastoners.v1';
 /* Balladors per parelles: A1..An (fila de dalt, mirant cap avall) i B1..Bn (fila de baix, mirant cap amunt) */
 const COLS=['c1','c2','c3','c4','c5','c6','c7','c8'];
 /* Colors per parella: el mateix to, fort per a l'A i clar per a la B */
-const PAIR_HUES=[[2,'Vermell'],[135,'Verd'],[44,'Groc mostassa',70,42],[215,'Blau'],[280,'Lila'],[26,'Taronja',88,50],[322,'Rosa'],[178,'Turquesa'],[245,'Indi'],[85,'Llima'],[350,'Gerd'],[195,'Cel']];
+// Colors de parella (carta triada: fort F2 per a les A, clar C per a les B)
+const PAIR_HUES=[[2,'Vermell'],[135,'Verd'],[44,'Groc mostassa',90,50],[215,'Blau'],[280,'Lila'],[26,'Taronja',95,58],[322,'Rosa'],[178,'Turquesa'],[245,'Indi'],[85,'Llima'],[350,'Gerd'],[195,'Cel'],[18,'Teula'],[160,'Verd menta'],[300,'Fúcsia'],[0,'Gris',0,48]];
 function pairColor(k,ab){ return 'p'+(((k-1)%PAIR_HUES.length)+1)+ab; }
-(function(){ let l='', d=''; PAIR_HUES.forEach(([h,,sa,la],i)=>{ const k=i+1;
-    l+=`--p${k}a:hsl(${h} ${sa||62}% ${la||36}%);--p${k}b:hsl(${h} 36% 68%);`; d+=`--p${k}a:hsl(${h} ${sa||58}% ${la?la+4:46}%);--p${k}b:hsl(${h} 38% 72%);`; });
+(function(){ let l='', d=''; PAIR_HUES.forEach(([h,,sa,la],i)=>{ const k=i+1, S=sa!=null?sa:82, L=la!=null?la:44, C=sa===0?0:52;
+    l+=`--p${k}a:hsl(${h} ${S}% ${L}%);--p${k}b:hsl(${h} ${C}% 62%);`; d+=`--p${k}a:hsl(${h} ${S}% ${Math.min(60,L+6)}%);--p${k}b:hsl(${h} ${C}% 68%);`; });
   const st=document.createElement('style');
   st.textContent=`:root{${l}} @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${d}}} :root[data-theme="dark"]{${d}}`;
   document.head.appendChild(st); })();
-function inkOn(color){ return /^p\d+b$/.test(color||'') ? '#1c2015' : 'var(--surface)'; }
+function inkOn(color){ const m=/^p(\d+)([ab])$/.exec(color||''); if(!m) return 'var(--surface)'; if(m[2]==='b') return '#1c2015';
+  const h=(PAIR_HUES[+m[1]-1]||[0])[0]; return (h>=35 && h<=200) ? '#1c2015' : '#fff'; }
 function colorOptions(sel){ const o=[]; PAIR_HUES.forEach(([h,n],i)=>{ o.push([`p${i+1}a`,`${n} fort`],[`p${i+1}b`,`${n} clar`]); });
   ['Oliva','Fusta','Blau','Morat','Mostassa','Verd aigua','Indi','Pissarra'].forEach((n,i)=>o.push(['c'+(i+1),n]));
   return o.map(([v,n])=>`<option value="${v}" ${sel===v?'selected':''}>${n}</option>`).join(''); }
