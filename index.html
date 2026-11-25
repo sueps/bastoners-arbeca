@@ -774,21 +774,24 @@ function drawFront(S){
     const W3=(f,r,z)=>proj(s.x+fwd[0]*f+rgt[0]*r, s.y+fwd[1]*f+rgt[1]*r, z);
     const col=cssVar('--'+(d.color||'c1'));
     const dep=Math.max(0.5,depR(rot(s.x,s.y)[1],1)), sc=F/dep;
-    const ba=bend*Math.PI/4, hip=(0.92-0.14*bend)*crouch+jump, sh=hip+0.5*Math.cos(ba)*crouch, shF=0.5*Math.sin(ba), head=hip+0.7*Math.cos(ba)*crouch, hdF=0.7*Math.sin(ba);
+    const cr=1-crouch, ba=bend*Math.PI/4+cr*1.1, hipB=-.18*cr/.4, hip=(0.92-0.14*bend)*crouch+jump, sh=hip+0.5*Math.cos(ba), shF=hipB+0.5*Math.sin(ba), head=hip+0.7*Math.cos(ba), hdF=hipB+0.7*Math.sin(ba);
     if(d.id===db.me){ const p=W3(0,0,0); ctx.strokeStyle=C.faixa; ctx.lineWidth=2.5; ctx.beginPath(); ctx.ellipse(p[0],p[1],sc*.42,sc*.1,0,0,Math.PI*2); ctx.stroke(); }
     const line=(a,b,lw,stroke)=>{ ctx.strokeStyle=stroke; ctx.lineWidth=lw; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); };
     const bw=Math.max(2,sc*.13), aw=Math.max(1.5,sc*.07), sw=Math.max(1.5,sc*.045);
     // cames
     // genolls una mica flexionats quan van doblegats (translacions)
-    const kneeF=.2*bend, kneeZ=(hip-jump)*.5+jump;
-    const leg2=(fx,r)=>{ if(bend>0){ const k=W3(fx/2+kneeF,r,kneeZ); line(W3(fx,r,jump),k,bw,col); line(k,W3(0,r*.85,hip),bw,col); } else line(W3(fx,r,jump), W3(0,r*.85,hip), bw, col); };
+    // cama de dos segments (cuixa + canyella): si el maluc baixa, el genoll surt endavant
+    const leg2=(fx,r)=>{ const hx=hipB, hz=hip, dx=fx-hx, dz=jump-hz, dd=Math.hypot(dx,dz), Lg=.47;
+      const k2=Math.sqrt(Math.max(0,Lg*Lg-dd*dd/4)) + .2*bend*(1-cr/.4), mx=(hx+fx)/2, mz=(hz+jump)/2, nx=-dz/dd, nz=dx/dd;
+      const kn=W3(mx+Math.abs(nx)*k2, r, mz+nz*k2*Math.sign(nx||1)*0);
+      line(W3(fx,r,jump),kn,bw,col); line(kn,W3(hx,r*.85,hip),bw,col); };
     leg2(step,.12);
     if(leg){ // cama esquerra aixecada: cuixa endavant i canyella cap avall
       const kn=W3(.42*leg,-.12,lerp(hip*.5,hip-.05,leg)+jump), ft=W3(.6*leg,-.12,lerp(0,.4,leg)+jump);
-      line(W3(0,-.1,hip), kn, bw, col); line(kn, ft, bw, col);
+      line(W3(hipB,-.1,hip), kn, bw, col); line(kn, ft, bw, col);
     } else leg2(0,-.12);
     // tronc i cap
-    line(W3(0,0,hip), W3(shF,0,sh), bw*1.5, col);
+    line(W3(hipB,0,hip), W3(shF,0,sh), bw*1.5, col);
     ctx.fillStyle=col; const hp=W3(hdF,0,head); ctx.beginPath(); ctx.arc(hp[0],hp[1],Math.max(3,sc*.12),0,Math.PI*2); ctx.fill();
     // braços i bastons
     [['R','Rd',.2],['L','Ld',-.2]].forEach(([hk,dk,side])=>{
