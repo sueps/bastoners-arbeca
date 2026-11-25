@@ -144,7 +144,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     <button id="btnUndo" hidden disabled title="Desfés l'últim canvi (Ctrl+Z)">↶ Desfés</button>
     <button id="btnRedo" hidden disabled title="Refés (Ctrl+Shift+Z)" aria-label="Refés">↷</button>
     <button id="btnEdit" aria-pressed="false">Edita</button>
-    <button id="btnRec" title="Exporta un vídeo amb la vista zenital i la 3D">⤓ Vídeo</button>
+    <!-- Exportar vídeo desactivat de moment: treure «hidden» per reactivar-lo -->
+    <button id="btnRec" hidden title="Exporta un vídeo amb la vista zenital i la 3D">⤓ Vídeo</button>
     <span id="nuvolEstat" class="nuvol" aria-live="polite"></span>
     <button id="btnLogin" title="Entra amb el correu per poder desar canvis per a tothom">Entra</button>
   </div>
