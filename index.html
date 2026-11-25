@@ -217,7 +217,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 const COPS0 = [
   {id:'terra', nom:'Terra', sol:true, descripcio:"Ajupit (cames juntes, sense arribar a sentadilla). Piques els dos bastons al terra davant dels teus peus."},
   {id:'baix', nom:'Baix', sol:false, descripcio:"De peu. Piques amb la mà esquerra, per sota de la cintura, amb la cara externa del bastó esquerre contra el bastó esquerre del company del davant (esquerra amb esquerra)."},
-  {id:'davant', nom:'Davant', sol:false, descripcio:"Els teus dos bastons, puntes juntes, piquen al terra contra els del company del davant (també puntes juntes)."},
+  {id:'davant', nom:'Davant', sol:false, descripcio:"Ajupit. Els teus dos bastons, puntes juntes, piquen al terra contra els del company del davant (també puntes juntes)."},
   {id:'mig', nom:'Mig', sol:true, descripcio:"Piques els teus dos bastons entre ells, davant teu, a l'altura de la cintura."},
   {id:'dalt', nom:'Dalt', sol:false, descripcio:"Piques el bastó dret amb el bastó dret del company per damunt del cap. Pot anar amb saltiró i crit (HEYY!): escriu «dalt+saltiró» quan toqui."},
   {id:'doble', nom:'Doble', sol:false, descripcio:"De peu, bastons creuats davant la cara, piquen contra els bastons creuats del company del davant."},
@@ -405,6 +405,7 @@ function loadDb(){ try{ const s=JSON.parse(localStorage.getItem(KEY)); if(s && A
   if(!s.migFinal){ s.migFinal=true; (s.balls||[]).forEach(b=>{ if(b.id==='ball_arbeca' && b.exemple) b.figures.forEach(f=>{ if(f.nom==='Picada final' && f.seq && f.seq[f.seq.length-1]==='el creuat'){ f.seq=f.seq.concat(['pausa','pausa']); if(f.nota) f.nota=f.nota.replace('Fi del ball.',"El ball s'acaba quiets en posició de doble."); } }); }); }
   if(!s.migEsq){ s.migEsq=true; if(!s.balls.some(b=>b.id==='ball_esquerrana')) s.balls.push(esquerranaBall()); }
   { const i=s.balls.findIndex(b=>b.id==='ball_esquerrana' && b.exemple && (b.versioExemple||1)<9); if(i>=0){ const e=esquerranaBall(Math.max(2,s.balls[i].balladors.filter(d=>/^A\d+$/.test(d.id)).length)); e.repartiments=s.balls[i].repartiments; s.balls[i]=e; } }
+  if(!s.migDavant){ s.migDavant=true; (s.cops||[]).forEach(c=>{ if(c.id==='davant' && c.descripcio==="Els teus dos bastons, puntes juntes, piquen al terra contra els del company del davant (també puntes juntes).") c.descripcio="Ajupit. Els teus dos bastons, puntes juntes, piquen al terra contra els del company del davant (també puntes juntes)."; }); }
   if(!s.migEsqMap){ s.migEsqMap=true; (s.balls||[]).forEach(b=>((b.musica&&b.musica.audios)||[]).forEach((a,i,arr)=>{ if(a.id==='aud_esq' && a.src==='esquerrana.mp3') arr[i]=Object.assign(ESQ_AUDIO(),{nom:a.nom}); })); }
   if(!s.migColPar){ s.migColPar=true; (s.balls||[]).forEach(b=>b.balladors.forEach(d=>{ const m=/^([AB])(\d+)$/.exec(d.id); if(m) d.color=pairColor(+m[2], m[1]==='A'?'a':'b'); })); }
   if(!s.migSolapa){ s.migSolapa=true; (s.balls||[]).forEach(b=>{ if(b.id==='ball_arbeca' && b.exemple) b.figures.forEach(f=>{ if(/^Intercanvi/.test(f.nom) && f.mou && +f.mou.temps===2 && !+f.mou.picades){ f.mou.temps=1; f.mou.solapa=1; } }); }); } (s.balls||[]).forEach(b=>((b.musica&&b.musica.audios)||[]).forEach(a=>{ if(a.id==='aud_assaig' && a.inici===7.06) a.inici=10.22; if(a.id==='aud_assaig' && a.previ==null) a.previ=8.7; if(a.id==='aud_infantil' && a.inici===10.94){ a.inici=3.24; a.previ=3.24; } })); (s.balls||[]).forEach(b=>{ if(b.id==='ball_arbeca' && b.exemple && b.musica && b.musica.audios && !b.musica.audios.some(a=>a.id==='aud_infantil') && !s.migInf){ b.musica.audios.push(AUDIO_INFANTIL()); } }); s.migInf=true; COMBIS0.forEach(c=>{ if(!s.combis.some(k=>k.id===c.id)) s.combis.push(clone(c)); }); return s; } }catch(e){} return freshDb(); }
@@ -661,7 +662,7 @@ const POSES = {
   picUp:   {R:P(.55,.18,.72), Rd:P(.25,0,-1), L:P(.55,-.18,.72), Ld:P(.25,0,-1)}, // inclinat, bastons a punt de picar
   terra:   {R:P(.35,.14,.45), Rd:P(.35,0,-1), L:P(.35,-.14,.45), Ld:P(.35,0,-1), crouch:.6},
   baix:    {L:P(.4,-.16,.8), Ld:P(.85,.12,-.4), R:P(.35,.18,1.0), Rd:P(.3,-.9,.3)}, // mà esquerra; la dreta espera a mig
-  davant:  {R:P(.35,.1,.95), Rd:P(.6,-.12,-.8), L:P(.35,-.1,.95), Ld:P(.6,.12,-.8)},
+  davant:  {R:P(.45,.1,.5), Rd:P(.6,-.1,-.7), L:P(.45,-.1,.5), Ld:P(.6,.1,-.7), crouch:.6},
   mig:     {R:P(.35,.18,1.0), Rd:P(.3,-.9,.3), L:LM, Ld:LMd},
   dalt:    {R:P(.3,.12,1.75), Rd:P(.55,-.2,.8), L:LM, Ld:LMd},
   doble:   {R:P(.35,.12,1.4), Rd:P(.2,-.7,.7), L:P(.35,-.12,1.4), Ld:P(.2,.7,.7)},
