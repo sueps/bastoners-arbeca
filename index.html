@@ -136,6 +136,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
   <div class="topctl">
     <label class="sr" for="ballSel">Ball</label>
     <select id="ballSel"></select>
+    <button id="btnUndo" hidden disabled title="Desfés l'últim canvi (Ctrl+Z)">↶ Desfés</button>
+    <button id="btnRedo" hidden disabled title="Refés (Ctrl+Shift+Z)" aria-label="Refés">↷</button>
     <button id="btnEdit" aria-pressed="false">Edita</button>
   </div>
 </header>
@@ -330,7 +332,20 @@ function loadDb(){ try{ const s=JSON.parse(localStorage.getItem(KEY)); if(s && A
   if(!s.migSolapa){ s.migSolapa=true; (s.balls||[]).forEach(b=>{ if(b.id==='ball_arbeca' && b.exemple) b.figures.forEach(f=>{ if(/^Intercanvi/.test(f.nom) && f.mou && +f.mou.temps===2 && !+f.mou.picades){ f.mou.temps=1; f.mou.solapa=1; } }); }); } (s.balls||[]).forEach(b=>((b.musica&&b.musica.audios)||[]).forEach(a=>{ if(a.id==='aud_assaig' && a.inici===7.06) a.inici=10.22; if(a.id==='aud_assaig' && a.previ==null) a.previ=8.7; if(a.id==='aud_infantil' && a.inici===10.94){ a.inici=3.24; a.previ=3.24; } })); (s.balls||[]).forEach(b=>{ if(b.id==='ball_arbeca' && b.exemple && b.musica && b.musica.audios && !b.musica.audios.some(a=>a.id==='aud_infantil') && !s.migInf){ b.musica.audios.push(AUDIO_INFANTIL()); } }); s.migInf=true; COMBIS0.forEach(c=>{ if(!s.combis.some(k=>k.id===c.id)) s.combis.push(clone(c)); }); return s; } }catch(e){} return freshDb(); }
 let db = loadDb();
 let saveTimer=null;
-function save(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>{ try{ localStorage.setItem(KEY, JSON.stringify(db)); }catch(e){} }, 250); }
+function save(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>{ snapTake(); try{ localStorage.setItem(KEY, JSON.stringify(db)); }catch(e){} }, 250); }
+/* ---------- desfer / refer (per ball, durant la sessió) ---------- */
+let undoStack=[], redoStack=[], snapBall=null, snapId=null;
+function snapTake(){ if(typeof ball==='undefined' || !ball) return; const cur=JSON.stringify(ball);
+  if(snapId!==ball.id){ snapBall=cur; snapId=ball.id; undoStack=[]; redoStack=[]; }
+  else if(cur!==snapBall){ undoStack.push(snapBall); if(undoStack.length>80) undoStack.shift(); redoStack=[]; snapBall=cur; }
+  renderUndo(); }
+function renderUndo(){ const u=document.getElementById('btnUndo'), r=document.getElementById('btnRedo'); if(!u) return;
+  u.hidden=r.hidden=!(typeof editing!=='undefined' && editing); u.disabled=!undoStack.length; r.disabled=!redoStack.length; }
+function undoRedo(redo){ snapTake(); const from=redo?redoStack:undoStack, to=redo?undoStack:redoStack; if(!from.length) return;
+  to.push(snapBall); const sStr=from.pop(), nb=JSON.parse(sStr), i=db.balls.findIndex(b=>b.id===nb.id); if(i<0) return;
+  db.balls[i]=nb; ball=nb; snapBall=sStr; snapId=nb.id; sel=new Set();
+  rebuild(); renderAudSel(); renderBallSel(); renderRepSel(); renderPanel(); frame(true);
+  clearTimeout(saveTimer); try{ localStorage.setItem(KEY, JSON.stringify(db)); }catch(e){} renderUndo(); }
 
 /* ---------- estat de la vista ---------- */
 let ball = db.balls.find(b=>b.id===db.curId) || db.balls[0];
@@ -1049,8 +1064,11 @@ bpmEl.onchange=()=>{ const v=Math.max(30,Math.min(240,+bpmEl.value||96)), a=curA
 chkNames.onchange=()=>frame(true); document.getElementById('repSel').onchange=e=>applyRep(e.target.value); chkPaths.onchange=()=>frame(true);
 document.addEventListener('keydown',e=>{ if(e.target.closest('input,textarea,select')) return; if(e.code==='Space'){ e.preventDefault(); togglePlay(); } if(e.key==='ArrowRight') stepBeat(1); if(e.key==='ArrowLeft') stepBeat(-1); if(e.key==='PageDown') jumpFig(segAt(t).i+1); if(e.key==='PageUp') jumpFig(segAt(t).i-1); });
 
-function setEditing(on){ editing=on; document.getElementById('btnEdit').setAttribute('aria-pressed', on); if(on){ togglePlay(false); snapToFigure(segAt(t).i); tab='edit'; } else sel=new Set(); renderTabs(); renderPanel(); frame(true); }
+function setEditing(on){ editing=on; document.getElementById('btnEdit').setAttribute('aria-pressed', on); snapTake(); renderUndo(); if(on){ togglePlay(false); snapToFigure(segAt(t).i); tab='edit'; } else sel=new Set(); renderTabs(); renderPanel(); frame(true); }
 document.getElementById('btnEdit').onclick=()=>setEditing(!editing);
+document.getElementById('btnUndo').onclick=()=>undoRedo(false);
+document.getElementById('btnRedo').onclick=()=>undoRedo(true);
+document.addEventListener('keydown',e=>{ if(!editing || !(e.ctrlKey||e.metaKey) || e.target.closest('input,textarea')) return; const k=e.key.toLowerCase(); if(k==='z'){ e.preventDefault(); undoRedo(e.shiftKey); } else if(k==='y'){ e.preventDefault(); undoRedo(true); } });
 
 let lastFig=-1, lastPanelBeat=-1, prevTs=0;
 function frame(force){
