@@ -232,8 +232,8 @@ const norm = s => (s||'').toString().trim().toLowerCase().normalize('NFD').repla
 
 function exampleBall(){
   const balladors = [];
-  for (let i=1;i<=4;i++) balladors.push({id:'A'+i, posicio:'A'+i, nom:'', color:'c'+i});
-  for (let i=1;i<=4;i++) balladors.push({id:'B'+i, posicio:'B'+i, nom:'', color:'c'+(i+4)});
+  for (let i=1;i<=4;i++) balladors.push({id:'A'+i, posicio:'A'+i, nom:'', color:pairColor(i,'a')});
+  for (let i=1;i<=4;i++) balladors.push({id:'B'+i, posicio:'B'+i, nom:'', color:pairColor(i,'b')});
   const xs = i => [0,2.6,3.8,6.2,7.4][i];
   // Dos quadrats (parelles 1-2 i 3-4) que fan exactament el mateix alhora.
   const base = () => { const p={}; for(let i=1;i<=4;i++){ p['A'+i]={x:xs(i),y:3.2,o:0}; p['B'+i]={x:xs(i),y:4.8,o:180}; } return p; };
@@ -324,7 +324,73 @@ function exampleBall(){
 
 /* ---------- emmagatzematge local (provisional fins a Supabase) ---------- */
 const KEY = 'bastoners.v1';
-function freshDb(){ const b=exampleBall(); return {balls:[b], cops:clone(COPS0), combis:clone(COMBIS0), curId:b.id, me:''}; }
+/* Balladors per parelles: A1..An (fila de dalt, mirant cap avall) i B1..Bn (fila de baix, mirant cap amunt) */
+const COLS=['c1','c2','c3','c4','c5','c6','c7','c8'];
+/* Colors per parella: el mateix to, fort per a l'A i clar per a la B */
+const PAIR_HUES=[[215,'Blau'],[2,'Vermell'],[135,'Verd'],[28,'Taronja'],[280,'Lila'],[178,'Turquesa'],[322,'Rosa'],[48,'Groc'],[245,'Indi'],[85,'Llima'],[350,'Gerd'],[195,'Cel']];
+function pairColor(k,ab){ return 'p'+(((k-1)%PAIR_HUES.length)+1)+ab; }
+(function(){ let l='', d=''; PAIR_HUES.forEach(([h],i)=>{ const k=i+1;
+    l+=`--p${k}a:hsl(${h} 62% 36%);--p${k}b:hsl(${h} 72% 70%);`; d+=`--p${k}a:hsl(${h} 58% 46%);--p${k}b:hsl(${h} 75% 76%);`; });
+  const st=document.createElement('style');
+  st.textContent=`:root{${l}} @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${d}}} :root[data-theme="dark"]{${d}}`;
+  document.head.appendChild(st); })();
+function inkOn(color){ return /^p\d+b$/.test(color||'') ? '#1c2015' : 'var(--surface)'; }
+function colorOptions(sel){ const o=[]; PAIR_HUES.forEach(([h,n],i)=>{ o.push([`p${i+1}a`,`${n} fort`],[`p${i+1}b`,`${n} clar`]); });
+  ['Oliva','Fusta','Blau','Morat','Mostassa','Verd aigua','Indi','Pissarra'].forEach((n,i)=>o.push(['c'+(i+1),n]));
+  return o.map(([v,n])=>`<option value="${v}" ${sel===v?'selected':''}>${n}</option>`).join(''); }
+function pairPos(k,n,W,H){ const gap=Math.min(1.4,(W-1.5)/Math.max(1,n-1)), x0=W/2-gap*(n-1)/2; return {x:Math.round((x0+gap*(k-1))*100)/100}; }
+function pairDancers(n,W=10,H=8){ const ds=[], pos={}; for(let k=1;k<=n;k++){ const {x}=pairPos(k,n,W,H);
+    ds.push({id:'A'+k,posicio:'A'+k,nom:'',color:pairColor(k,'a')}); pos['A'+k]={x,y:H/2-0.8,o:0};
+    ds.push({id:'B'+k,posicio:'B'+k,nom:'',color:pairColor(k,'b')}); pos['B'+k]={x,y:H/2+0.8,o:180}; }
+  return {ds,pos}; }
+// Formació en cercle: les B a dins, espatlla amb espatlla mirant enfora; cada A al davant de la seva B, mirant cap a dins.
+// Parella 1 al costat dels jutges i numeració en sentit horari vist des de dalt.
+function circlePos(n,W,H){ const cx=W/2, cy=H/2, rB=Math.max(0.6, 0.65/(2*Math.sin(Math.PI/n))), rA=rB+1.2, pos={};
+  for(let k=1;k<=n;k++){ const th=-(k-1)*360/n, a=th*Math.PI/180, dx=Math.sin(a), dy=Math.cos(a), r2=v=>Math.round(v*100)/100;
+    pos['B'+k]={x:r2(cx+rB*dx), y:r2(cy+rB*dy), o:((th%360)+360)%360};
+    pos['A'+k]={x:r2(cx+rA*dx), y:r2(cy+rA*dy), o:((th+180)%360+360)%360}; }
+  return pos; }
+function relayoutCircle(b){ // balls generats (p. ex. L'Esquerrana): es refan per al nou nombre de parelles, conservant noms i colors
+  if(b.generador!=='esquerrana') return; const n=b.balladors.filter(d=>/^A\d+$/.test(d.id)).length, nb=esquerranaBall(n);
+  const old={}; b.balladors.forEach(d=>old[d.id]=d); b.balladors=nb.balladors.map(d=>old[d.id]?Object.assign({},d,{nom:old[d.id].nom,color:old[d.id].color}):d);
+  b.figures=nb.figures; }
+function esquerranaBall(n=6){ const W=12, H=8, {ds}=pairDancers(n,W,H), pos=circlePos(n,W,H);
+  const F=(nom,o)=>Object.assign({id:uid('f'), acte:1, nom, nota:'', dubtos:false, mou:{temps:0,picades:0}, pos:{}, seq:[], seqPer:{}}, o);
+  const still=p=>{ const q={}; for(const k in p){ q[k]={x:p[k].x,y:p[k].y,o:p[k].o}; } return q; };
+  // Posicions del cercle: outer(j) = lloc d'A j (mirant cap a dins), inner(j) = lloc de B j (mirant enfora).
+  const outer=j=>pos['A'+j], inner=j=>pos['B'+j], wrapI=j=>((j-1)%n+n)%n+1, flip=o=>(o+180)%360;
+  const P=(q,o,extra)=>Object.assign({x:q.x,y:q.y,o:((o%360)+360)%360},extra||{});
+  // A k a la ronda r és al lloc j = k - r (cada ronda va al lloc de l'A que té a la dreta)
+  const jOf=(k,r)=>wrapI(k-r);
+  const SEQ=['terra','davant','terra','terra','mig','dalt+saltiró i HEY!','terra','davant','terra','terra','mig','dalt+saltiró i HEY!','mig','baix','mig+cama dreta endavant'];
+  const figs=[];
+  for(let r=0;r<n;r++){
+    const at=(fn)=>{ const q={}; for(let k=1;k<=n;k++){ const [a,b]=fn(k,jOf(k,r)); q['A'+k]=a; q['B'+k]=b; } return q; };
+    const ronda = n>1 ? ` (parella ${r+1}/${n})` : '';
+    // 1. picada amb la parella (A a fora, B a dins)
+    figs.push(F('Picada amb la parella'+ronda, {pos:at((k,j)=>[P(outer(j),outer(j).o), P(inner(k),inner(k).o)]), seq:SEQ, mou:{temps: r===0?0:0, picades:0},
+      nota: r===0 ? "En cercle: les B a dins, espatlla amb espatlla, mirant enfora; cada A al davant de la seva B, mirant cap a dins. Seqüència: terra, davant, terra, terra, mig, dalt (saltiró i HEY!), terra, davant, terra, terra, mig, dalt (saltiró i HEY!), mig, baix, mig avançant la cama dreta…" : "La mateixa picada amb la parella nova."}));
+    // 2. sotacama i pas endavant: queden d'esquena (A a dins, B a fora), mig sols
+    figs.push(F('Sotacama i pas endavant'+ronda, {pos:at((k,j)=>[P(inner(j),outer(j).o,{tipus:'arc',costat:'dreta'}), P(outer(k),inner(k).o,{tipus:'arc',costat:'dreta'})]),
+      mou:{temps:1,picades:0,durant:true}, seq:['sotacama','mig'],
+      nota: r===0 ? "Sotacama (pugem la cama esquerra i toc per sota) i acabem el pas: quedem a la posició del company, d'esquena a ell. Allà fem un mig amb els nostres bastons." : ''}));
+    // 3. gir a la dreta amb 3 tocs per tornar a mirar la parella (A a dins, B a fora)
+    figs.push(F('Gir amb 3 tocs a terra'+ronda, {pos:at((k,j)=>[P(inner(j),inner(j).o,{costat:'dreta'}), P(outer(k),outer(k).o,{costat:'dreta'})]), mou:{temps:3,picades:3},
+      nota: r===0 ? "Ens girem cap a la dreta fent 3 tocs a terra per tornar a quedar cara a cara amb la parella (ara les A a dins i les B a fora)." : ''}));
+    // 4. mig, baix, mig avançant la cama dreta
+    figs.push(F('Mig, baix, mig'+ronda, {pos:at((k,j)=>[P(inner(j),inner(j).o), P(outer(k),outer(k).o)]), seq:['mig','baix','mig+cama dreta endavant']}));
+    // 5. sotacama i tornada: les B tornen al seu lloc; les A van al lloc de l'A de la seva dreta
+    const j2=k=>jOf(k,r+1);
+    figs.push(F('Sotacama i canvi de parella'+ronda, {pos:at((k,j)=>[P(outer(j2(k)),inner(j).o,{tipus:'arc',costat:'dreta'}), P(inner(k),outer(k).o,{tipus:'arc',costat:'dreta'})]),
+      mou:{temps:1,picades:0,durant:true}, seq:['sotacama','mig'],
+      nota: r===0 ? "Sotacama i tornem a fora/dins, però les A, en comptes de tornar al seu lloc, van al lloc de l'A que tenen a la dreta. Allà, mig sols." : ''}));
+    // 6. gir amb 3 tocs per mirar la parella nova
+    figs.push(F('Gir amb 3 tocs a terra, parella nova'+ronda, {pos:at((k,j)=>[P(outer(j2(k)),outer(j2(k)).o,{costat:'dreta'}), P(inner(k),inner(k).o,{costat:'dreta'})]), mou:{temps:3,picades:3}, dubtos:r===n-1,
+      nota: r===0 ? "Gir a la dreta amb 3 tocs a terra per quedar cara a cara amb la B nova." : (r===n-1 ? "Les A tornen a ser amb la seva parella inicial. Pendent: com s'acaba el ball." : '')}));
+  }
+  return {id:'ball_esquerrana', nom:"L'Esquerrana", exemple:true, versioExemple:9, generador:'esquerrana', musica:{bpm:106,tempsPerCompas:2,audios:[{id:'aud_esq', nom:'Música', src:'esquerrana.mp3', inici:3.26, bpm:106, previ:3.26}],audioActiu:'aud_esq'}, espai:{ample:W,fons:H}, balladors:ds, formacio:'cercle',
+    figures:figs}; }
+function freshDb(){ const b=exampleBall(); return {migEsq:true, balls:[b, esquerranaBall()], cops:clone(COPS0), combis:clone(COMBIS0), curId:b.id, me:''}; }
 function AUDIO_ARBECA(){ return {id:'aud_assaig', nom:'Assaig (vídeo)', src:'ball-arbeca.mp3', inici:10.22, bpm:113.6, previ:8.7}; }
 function AUDIO_INFANTIL(){ return {id:'aud_infantil', nom:'Música (infantil)', src:'ball-arbeca-infantil.mp3', inici:3.24, bpm:109.2, previ:3.24}; }
 function loadDb(){ try{ const s=JSON.parse(localStorage.getItem(KEY)); if(s && Array.isArray(s.balls) && s.balls.length){ const i=s.balls.findIndex(b=>b.id==='ball_arbeca' && b.exemple && (b.versioExemple||1)<42); if(i>=0){ s.balls[i]=exampleBall(); s.me=''; } s.cops=s.cops||[]; if(!s.migDoble){ s.migDoble=true; s.cops.forEach(c=>{ if(c.id==='creuat'){ c.id='doble'; c.nom='Doble'; } }); s.combis=(s.combis||[]).filter(c=>c.id!=='el-creuat'); (s.balls||[]).forEach(b=>b.figures.forEach(f=>{ const fx=a=>a&&a.map(t=>norm(t)==='creuat'?'doble':t); f.seq=fx(f.seq); for(const k in (f.seqPer||{})) f.seqPer[k]=fx(f.seqPer[k]); })); } if(!s.migBaixEsq){ s.migBaixEsq=true; s.cops.forEach(c=>{ if(c.id==='baix' && /bastó dret per sota|part exterior/.test(c.descripcio||'')) c.descripcio=COPS0.find(k=>k.id==='baix').descripcio; }); } if(!s.migLluita){ s.migLluita=true; const l=(s.combis||[]).find(c=>c.id==='lluita'); if(l){ if(l.temps==null) l.temps=0.5; if(l.mantenir==null) l.mantenir=true; } const cr=(s.combis||[]).find(c=>c.id==='creuat'); if(cr && cr.temps==null) cr.temps=0.5; } if(!s.migAudio){ s.migAudio=true; (s.balls||[]).forEach(b=>{ b.musica=b.musica||{bpm:96,tempsPerCompas:2}; delete b.musica.audio; b.musica.audios=b.musica.audios||[]; if(b.id==='ball_arbeca' && b.exemple && !b.musica.audios.length){ b.musica.audios.push(AUDIO_ARBECA()); b.musica.audioActiu='aud_assaig'; } }); } if(!s.migCua){ s.migCua=true; (s.combis||[]).forEach(c=>{ if((c.id==='lluita'||c.id==='creuat') && c.temps===0.5) c.temps=0.75; });
@@ -333,6 +399,9 @@ function loadDb(){ try{ const s=JSON.parse(localStorage.getItem(KEY)); if(s && A
       else if(/^La creu/.test(f.nom) && j==='el creuat') f.seq=['el creuat','pausa','pausa'];
       else if(/^Creuat i lluita/.test(f.nom) && j==='el creuat,lluita') f.seq=['el creuat','lluita','pausa']; }); }); }
   if(!s.migFinal){ s.migFinal=true; (s.balls||[]).forEach(b=>{ if(b.id==='ball_arbeca' && b.exemple) b.figures.forEach(f=>{ if(f.nom==='Picada final' && f.seq && f.seq[f.seq.length-1]==='el creuat'){ f.seq=f.seq.concat(['pausa','pausa']); if(f.nota) f.nota=f.nota.replace('Fi del ball.',"El ball s'acaba quiets en posició de doble."); } }); }); }
+  if(!s.migEsq){ s.migEsq=true; if(!s.balls.some(b=>b.id==='ball_esquerrana')) s.balls.push(esquerranaBall()); }
+  { const i=s.balls.findIndex(b=>b.id==='ball_esquerrana' && b.exemple && (b.versioExemple||1)<9); if(i>=0){ const e=esquerranaBall(Math.max(2,s.balls[i].balladors.filter(d=>/^A\d+$/.test(d.id)).length)); e.repartiments=s.balls[i].repartiments; s.balls[i]=e; } }
+  if(!s.migColPar){ s.migColPar=true; (s.balls||[]).forEach(b=>b.balladors.forEach(d=>{ const m=/^([AB])(\d+)$/.exec(d.id); if(m) d.color=pairColor(+m[2], m[1]==='A'?'a':'b'); })); }
   if(!s.migSolapa){ s.migSolapa=true; (s.balls||[]).forEach(b=>{ if(b.id==='ball_arbeca' && b.exemple) b.figures.forEach(f=>{ if(/^Intercanvi/.test(f.nom) && f.mou && +f.mou.temps===2 && !+f.mou.picades){ f.mou.temps=1; f.mou.solapa=1; } }); }); } (s.balls||[]).forEach(b=>((b.musica&&b.musica.audios)||[]).forEach(a=>{ if(a.id==='aud_assaig' && a.inici===7.06) a.inici=10.22; if(a.id==='aud_assaig' && a.previ==null) a.previ=8.7; if(a.id==='aud_infantil' && a.inici===10.94){ a.inici=3.24; a.previ=3.24; } })); (s.balls||[]).forEach(b=>{ if(b.id==='ball_arbeca' && b.exemple && b.musica && b.musica.audios && !b.musica.audios.some(a=>a.id==='aud_infantil') && !s.migInf){ b.musica.audios.push(AUDIO_INFANTIL()); } }); s.migInf=true; COMBIS0.forEach(c=>{ if(!s.combis.some(k=>k.id===c.id)) s.combis.push(clone(c)); }); return s; } }catch(e){} return freshDb(); }
 let db = loadDb();
 let saveTimer=null;
@@ -385,7 +454,9 @@ function rebuild(){
     if(move+len===0) len=1;
     // solapa: el desplaçament continua durant els primers temps de la figura següent (p. ex. l'intercanvi es fa mentre ja piquen)
     const solapa = len===0 ? Math.min(move, Math.max(0, +(f.mou&&f.mou.solapa)||0)) : 0;
-    const seg={i,f,start:acc,move,len,solapa,end:acc+move+len-solapa,seqs}; acc=seg.end; return seg;
+    // durant: el desplaçament es fa mentre piquen els primers cops de la mateixa figura (p. ex. el pas del sotacama)
+    const durant = (f.mou&&f.mou.durant&&len>0) ? Math.min(len,move) : 0;
+    const seg={i,f,start:acc,move:move-durant,len,solapa,durant,end:acc+move-durant+len-solapa,seqs}; acc=seg.end; return seg;
   });
   total = Math.max(1, acc);
   scrub.max = total; t = Math.min(t, total-0.001);
@@ -442,12 +513,13 @@ function oriDelta(P0,P1){
 function movePos(P0,P1,p){
   const e=ease(p); let [x,y]=pathPt(P0,P1,e), o=P0.o+oriDelta(P0,P1)*e;
   // en els trasllats, la mirada va endavant, cap al destí (gira al principi i al final)
-  if(P1.tipus!=='gir' && Math.hypot(P1.x-P0.x,P1.y-P0.y)>0.3){
+  if(P1.tipus!=='gir' && !P1.girSobre && Math.hypot(P1.x-P0.x,P1.y-P0.y)>0.3){
     const a1=pathPt(P0,P1,Math.max(0,e-0.02)), a2=pathPt(P0,P1,Math.min(1,e+0.02));
     const head=Math.atan2(a2[0]-a1[0], a2[1]-a1[1])*180/Math.PI;
     const ang=(from,to,k)=>from+wrap180(to-from)*Math.max(0,Math.min(1,k));
     o = p<0.15 ? ang(P0.o, head, p/0.15) : (p>0.85 ? ang(head, P1.o, (p-0.85)/0.15) : head);
   }
+  if(P1.volta) o += (P1.costat==='esquerra'?1:-1)*(+P1.volta)*e; // gira sobre si mateix mentre es desplaça
   return [x,y,o];
 }
 function stateAt(tt){
@@ -465,6 +537,7 @@ function stateAt(tt){
     } else {
       x=P1.x; y=P1.y; o=P1.o;
       const ps=tl[seg.i-1];
+      if(seg.durant && local-seg.move < seg.durant){ [x,y,o]=movePos(P0,P1,(local-seg.move)/seg.durant); }
       if(ps && ps.solapa && tt < ps.start+ps.move){ const f2=ball.figures[seg.i-2], Q1=posOf(ps.f,d,i), Q0=f2?posOf(f2,d,i):Q1; [x,y,o]=movePos(Q0,Q1,(tt-ps.start)/ps.move); }
       const b=local-seg.move, sq=seg.seqs[d.id], bi=sq.findIndex(q=>b>=q.t0 && b<q.t0+(q.dur||1)), it=sq[bi];
       act = it ? {type:'cop', it, frac:(b-it.t0)/(it.dur||1), idx:bi} : {type:'repos'};
@@ -528,7 +601,7 @@ function drawZen(S){
     if(isMe) g+=`<circle r="0.46" fill="none" stroke="var(--faixa)" stroke-width="0.08"/>`;
     g+=`<g transform="rotate(${(-s.o).toFixed(2)})"><path d="M-0.13 0.19 L0.13 0.19 L0 0.38 Z" fill="${col}"/></g>`;
     g+=`<circle r="0.24" fill="${col}" stroke="var(--surface)" stroke-width="0.04"/>`;
-    g+=`<text y="0.065" text-anchor="middle" font-size="0.17" font-weight="700" fill="var(--surface)" font-family="var(--f-text)">${esc(d.posicio)}</text>`;
+    g+=`<text y="0.065" text-anchor="middle" font-size="0.17" font-weight="700" fill="${inkOn(d.color)}" font-family="var(--f-text)">${esc(d.posicio)}</text>`;
     if(chkNames.checked && d.nom) g+=`<text y="0.56" text-anchor="middle" font-size="0.18" font-weight="600" fill="var(--ink)">${esc(label(d))}</text>`;
     if(badge) g+=`<text y="-0.33" text-anchor="middle" font-size="0.17" font-weight="700" fill="${isMe?'var(--faixa)':'var(--ink)'}" paint-order="stroke" stroke="var(--floor)" stroke-width="0.06">${esc(badge)}</text>`;
     g+=`</g>`;
@@ -888,7 +961,7 @@ function renderBall(){
   const m=ball.musica, e=ball.espai, ro=!editing;
   const rows=ball.balladors.map((d,i)=>`<tr><td><input data-k="posicio" data-i="${i}" value="${esc(d.posicio)}" ${ro?'disabled':''} aria-label="Posició"></td>
     <td><input data-k="nom" data-i="${i}" value="${esc(d.nom||'')}" placeholder="—" ${ro?'disabled':''} aria-label="Nom"></td>
-    <td><select data-k="color" data-i="${i}" ${ro?'disabled':''} aria-label="Color">${['c1','c2','c3','c4','c5','c6','c7','c8'].map(c=>`<option value="${c}" ${d.color===c?'selected':''}>${{c1:'Oliva',c2:'Fusta',c3:'Blau',c4:'Morat',c5:'Mostassa',c6:'Verd aigua',c7:'Indi',c8:'Pissarra'}[c]}</option>`).join('')}</select></td></tr>`).join('');
+    <td><select data-k="color" data-i="${i}" ${ro?'disabled':''} aria-label="Color">${colorOptions(d.color)}</select></td></tr>`).join('');
   body.innerHTML=`<div class="stack">
     ${ro?'<div class="hint">Activa «Edita» per canviar aquestes dades.</div>':''}
     <label class="lbl" for="bNom">Nom del ball</label><input id="bNom" value="${esc(ball.nom)}" ${ro?'disabled':''}>
@@ -907,7 +980,7 @@ function renderBall(){
     <div class="hint">«Inici» és el segon de l'àudio on comença el primer temps del ball; «Previ», els segons que sonen abans (el compte) quan comences des del principi; «bpm» és el tempo d'aquell àudio. Pots tenir la cançó i el cant dels passos, i triar-los amb ♪ a dalt. Els àudios que afegeixes es guarden en aquest navegador.</div><div id="aMsg" class="hint"></div>`}
     <hr>
     <div class="row" style="justify-content:space-between"><span class="lbl">Balladors (${ball.balladors.length})</span>
-      ${ro?'':'<span class="row"><button id="dAdd">+ Afegeix</button><button id="dDel" class="danger">− Treu l\'últim</button></span>'}</div>
+      ${ro?'':'<span class="row"><button id="dAdd">+ Parella</button><button id="dDel" class="danger">− Treu l\'última parella</button></span>'}</div>
     <div class="hint">La posició és el nom genèric (A1, B3…). El nom de la persona és opcional i es mostra amb «Noms».</div>
     <div class="lbl">Repartiment de noms</div>
     <div class="row"><select id="rSel" aria-label="Repartiment actiu">${repOptions()}</select>${ro?'':(ball.repActiu?'<button id="rDel" class="danger">Elimina</button>':'')}</div>
@@ -938,11 +1011,16 @@ function renderBall(){
   $('#bH').onchange=ev=>{ e.fons=Math.max(3,+ev.target.value||8); save(); frame(true); };
   body.querySelectorAll('[data-k]').forEach(inp=>{ const ev=inp.tagName==='SELECT'?'onchange':'oninput';
     inp[ev]=()=>{ const d=ball.balladors[+inp.dataset.i]; d[inp.dataset.k]=inp.value; if(inp.dataset.k==='nom'){ const r=curRep(); if(r){ if(inp.value) r.noms[d.id]=inp.value; else delete r.noms[d.id]; } } save(); frame(true); renderBallSel(); }; });
-  $('#dAdd').onclick=()=>{ const n=ball.balladors.length+1; let id='P'+n; while(ball.balladors.some(d=>d.id===id)) id+='_';
-    const d={id, posicio:'P'+n, nom:'', color:'c3'}; ball.balladors.push(d);
-    const p=defaultPos(d,ball.balladors.length-1); ball.figures.forEach(f=>{ f.pos[id]={x:Math.min(ball.espai.ample-.5,p.x), y:ball.espai.fons-1, o:0}; });
-    rebuild(); save(); renderPanel(); frame(true); };
-  $('#dDel').onclick=()=>{ if(ball.balladors.length<2) return; const d=ball.balladors.pop(); ball.figures.forEach(f=>{ delete f.pos[d.id]; if(f.seqPer) delete f.seqPer[d.id]; }); sel.delete(d.id); if(db.me===d.id) db.me='';
+  $('#dAdd').onclick=()=>{ // afegeix una parella nova (A i B amb el número següent)
+    let k=1; while(ball.balladors.some(d=>d.id==='A'+k||d.id==='B'+k)) k++;
+    const W=ball.espai.ample, H=ball.espai.fons, xs=ball.balladors.map(d=>(ball.figures[0].pos[d.id]||{}).x||0), x=Math.min(W-.4, (xs.length?Math.max(...xs):0)+1.2);
+    [['A',H/2-0.8,0],['B',H/2+0.8,180]].forEach(([L,y,o],j)=>{ const id=L+k; ball.balladors.push({id,posicio:id,nom:'',color:pairColor(k,L==='A'?'a':'b')});
+      ball.figures.forEach(f=>{ f.pos[id]={x,y,o}; }); });
+    relayoutCircle(ball); rebuild(); save(); renderPanel(); frame(true); };
+  $('#dDel').onclick=()=>{ if(ball.balladors.length<3) return; // treu l'última parella (o l'últim ballador si no és A/B)
+    const last=ball.balladors[ball.balladors.length-1], m=/^[AB](\d+)$/.exec(last.id), out=m? ball.balladors.filter(d=>d.id==='A'+m[1]||d.id==='B'+m[1]) : [last];
+    ball.balladors=ball.balladors.filter(d=>!out.includes(d));
+    out.forEach(d=>{ ball.figures.forEach(f=>{ delete f.pos[d.id]; if(f.seqPer) delete f.seqPer[d.id]; }); sel.delete(d.id); if(db.me===d.id) db.me=''; }); relayoutCircle(ball);
     rebuild(); save(); renderPanel(); frame(true); };
 }
 
@@ -992,8 +1070,7 @@ function renderLib(){
   body.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{ const id=b.dataset.del, bb=db.balls.find(x=>x.id===id);
     $('#libConf').innerHTML=`<div class="row note">Eliminar «${esc(bb.nom)}» definitivament? <button id="dy" class="danger">Sí, elimina</button><button id="dn">No</button></div>`;
     $('#dy').onclick=()=>{ db.balls=db.balls.filter(x=>x.id!==id); save(); openBall(db.balls[0].id); }; $('#dn').onclick=()=>{$('#libConf').innerHTML='';}; });
-  $('#lNew').onclick=()=>{ const ds=[]; for(let i=1;i<=8;i++) ds.push({id:'P'+i,posicio:'P'+i,nom:'',color:'c1'});
-    const pos={}; ds.forEach((d,i)=>pos[d.id]={x:1.5+i,y:4,o:0});
+  $('#lNew').onclick=()=>{ const {ds,pos}=pairDancers(4);
     const nb={id:uid('ball'), nom:'Ball nou', musica:{bpm:96,tempsPerCompas:2,audios:[],audioActiu:''}, espai:{ample:10,fons:8}, balladors:ds,
       figures:[{id:uid('f'),nom:'Formació inicial',nota:'',dubtos:false,mou:{temps:0,picades:0},pos,seq:['mig','mig'],seqPer:{}}]};
     db.balls.push(nb); save(); openBall(nb.id); if(!editing) setEditing(true); };
