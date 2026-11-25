@@ -43,6 +43,7 @@ label{display:inline-flex;gap:6px;align-items:center}
 .brand h1{font-size:22px;letter-spacing:-.01em;line-height:1.1}
 .brand .sub{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
 .topctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.nuvol{font-size:12px;color:var(--muted)} .nuvol.err{color:#c0392b}
 #ballSel{max-width:240px}
 .layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
 @media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}}
@@ -143,6 +144,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     <button id="btnRedo" hidden disabled title="Refés (Ctrl+Shift+Z)" aria-label="Refés">↷</button>
     <button id="btnEdit" aria-pressed="false">Edita</button>
     <button id="btnRec" title="Exporta un vídeo amb la vista zenital i la 3D">⤓ Vídeo</button>
+    <span id="nuvolEstat" class="nuvol" aria-live="polite"></span>
+    <button id="btnLogin" title="Entra amb el correu per poder desar canvis per a tothom">Entra</button>
   </div>
   <div id="recBar" class="recbar" hidden><span id="recTxt">Gravant…</span><button id="recStop">Atura</button></div>
 </header>
@@ -1259,4 +1262,84 @@ renderAudSel(); loadAudio();
 rebuild(); renderBallSel(); renderRepSel(); renderCamSel(); renderTabs(); renderPanel(); frame(true);
 requestAnimationFrame(loop);
 document.fonts && document.fonts.ready.then(()=>frame(true));
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+/* ===================================================================
+   NÚVOL (Supabase): tothom llegeix sense entrar; només els editors
+   (taula editors) desen. localStorage continua sent la còpia local/offline.
+   SQL: bastoners/supabase/schema.sql
+   =================================================================== */
+(function(){
+  const SB_URL='https://ndxmkyjdngekqfhlfqax.supabase.co', SB_KEY='sb_publishable_mbpDLOGsElWtoy6lIEXDpw_jyykcyGM';
+  const estEl=document.getElementById('nuvolEstat'), btn=document.getElementById('btnLogin');
+  const estat=(txt,err)=>{ if(!estEl) return; estEl.textContent=txt; estEl.classList.toggle('err',!!err); };
+  if(!window.supabase || !window.fetch){ estat('Sense connexió · dades locals'); if(btn) btn.hidden=true; return; }
+  const sb=supabase.createClient(SB_URL,SB_KEY);
+  let email='', editor=false, carregat=false, pujant=false, pendent=false, timer=null;
+  let pushed={};   // signatura de l'últim estat que hi ha al núvol, per no tornar a pujar el que no ha canviat
+  const sigB=(b,i)=>JSON.stringify(b)+'#'+i;
+
+  function renderLogin(){ if(!btn) return;
+    btn.textContent = email ? (editor ? '✓ Editor' : 'Surt') : 'Entra';
+    btn.title = email ? `${email}${editor?'':' (no és editor)'} · clica per sortir` : 'Entra amb el correu per poder desar canvis per a tothom'; }
+  async function comprovaEditor(){
+    const { data:{ session } } = await sb.auth.getSession();
+    email = (session && session.user && session.user.email) || ''; editor=false;
+    if(email){ const { data, error } = await sb.rpc('es_editor'); editor = !error && data===true; }
+    renderLogin(); }
+
+  function refresca(){ // torna a pintar l'app amb el db nou
+    ball = db.balls.find(b=>b.id===(ball&&ball.id)) || db.balls.find(b=>b.id===db.curId) || db.balls[0];
+    snapId=null; snapTake(); sel=new Set();
+    rebuild(); renderAudSel(); loadAudio(); renderBallSel(); renderRepSel(); renderPanel(); frame(true); }
+
+  async function baixa(){
+    const [rb, rc] = await Promise.all([ sb.from('balls').select('id,dades,ordre').order('ordre'), sb.from('cataleg').select('clau,dades') ]);
+    if(rb.error || rc.error) throw (rb.error || rc.error);
+    if(!rb.data.length){ carregat=true; estat(editor ? 'Núvol buit · pujant…' : 'Núvol buit · dades locals'); if(editor) puja(); return; }
+    if(editing || pendent || pujant) return;           // no trepitgem una edició en curs
+    const nou=Object.assign({}, db, { balls: rb.data.map(r=>r.dades) });
+    rc.data.forEach(r=>{ if(r.clau==='cops' || r.clau==='combis') nou[r.clau]=r.dades; });
+    const cur=JSON.stringify(db), nouStr=JSON.stringify(nou);
+    pushed={}; rb.data.forEach((r,i)=>pushed['b:'+r.id]=sigB(r.dades,i)); rc.data.forEach(r=>pushed['c:'+r.clau]=JSON.stringify(r.dades));
+    carregat=true;
+    if(nouStr!==cur){ try{ localStorage.setItem(KEY, nouStr); }catch(_){} db=loadDb(); refresca(); }
+    estat('Al dia ✓');
+    if(editor) programa(); }                            // si les migracions han tocat res, ho puja
+
+  async function puja(){
+    if(!editor || !carregat) return; if(pujant){ pendent=true; return; }
+    pujant=true; pendent=false;
+    try{
+      const ara=new Date().toISOString(), ids=new Set(), rows=[], cat=[];
+      db.balls.forEach((b,i)=>{ ids.add(b.id); const s=sigB(b,i); if(pushed['b:'+b.id]!==s) rows.push({ row:{id:b.id, dades:b, ordre:i, actualitzat:ara, autor:email}, k:'b:'+b.id, s }); });
+      ['cops','combis'].forEach(k=>{ const s=JSON.stringify(db[k]||[]); if(pushed['c:'+k]!==s) cat.push({ row:{clau:k, dades:db[k]||[], actualitzat:ara, autor:email}, k:'c:'+k, s }); });
+      const del=Object.keys(pushed).filter(k=>k.startsWith('b:') && !ids.has(k.slice(2))).map(k=>k.slice(2));
+      if(!rows.length && !cat.length && !del.length){ estat('Al dia ✓'); return; }
+      estat('Desant…');
+      if(rows.length){ const { error } = await sb.from('balls').upsert(rows.map(x=>x.row)); if(error) throw error; rows.forEach(x=>pushed[x.k]=x.s); }
+      if(cat.length){ const { error } = await sb.from('cataleg').upsert(cat.map(x=>x.row)); if(error) throw error; cat.forEach(x=>pushed[x.k]=x.s); }
+      if(del.length){ const { error } = await sb.from('balls').delete().in('id', del); if(error) throw error; del.forEach(id=>delete pushed['b:'+id]); }
+      estat('Desat per a tothom ✓');
+    }catch(e){ console.warn('[núvol]', e); estat('No s\'ha pogut desar al núvol', true); }
+    finally{ pujant=false; if(pendent) programa(); } }
+  function programa(){ pendent=true; clearTimeout(timer); timer=setTimeout(()=>{ pendent=false; puja(); }, 1200); }
+
+  // cada vegada que l'app desa en local, també ho prova al núvol
+  const save0=save; save=function(){ save0.apply(this,arguments); if(!carregat) return; if(editor) programa(); else estat('Canvis només en aquest dispositiu'); };
+  const undo0=undoRedo; undoRedo=function(){ undo0.apply(this,arguments); if(editor && carregat) programa(); };
+
+  if(btn) btn.onclick=async()=>{
+    if(email){ await sb.auth.signOut(); return; }
+    const e=(prompt('Correu electrònic (t\'enviarem un enllaç per entrar):')||'').trim(); if(!e) return;
+    const { error } = await sb.auth.signInWithOtp({ email:e, options:{ emailRedirectTo: location.origin+location.pathname } });
+    alert(error ? 'No s\'ha pogut enviar el correu: '+error.message : 'Fet! Mira el correu i obre l\'enllaç des d\'aquest mateix dispositiu.'); };
+
+  sb.auth.onAuthStateChange(()=>{ setTimeout(async()=>{ await comprovaEditor(); if(editor && carregat) programa(); }, 0); });
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && carregat && !editing) baixa().catch(()=>{}); });
+
+  estat('Connectant…');
+  comprovaEditor().then(baixa).catch(e=>{ console.warn('[núvol]', e); estat('Sense connexió · dades locals', true); });
+})();
 </script>
