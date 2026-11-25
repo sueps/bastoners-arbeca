@@ -64,6 +64,7 @@ label{display:inline-flex;gap:6px;align-items:center}
 .viewhead .opts{display:flex;gap:12px;color:var(--muted);font-size:13px;flex-wrap:wrap}
 #zen{width:100%;height:auto;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
 #front{width:100%;aspect-ratio:16/9;display:block;max-width:100%}
+.camel{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:13px}.camel input{flex:1;min-width:120px;max-width:260px;accent-color:var(--accent,currentColor)}
 .now{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}
 .now .fig{font-family:var(--f-display);font-size:20px;font-weight:700}
 .now .meta{color:var(--muted);font-size:13px}
@@ -175,7 +176,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
       <div class="card">
         <div class="viewhead"><h2>Vista 3D</h2><div class="camsel" id="camSel" role="group" aria-label="Càmera"></div></div>
         <canvas id="front" aria-label="Vista 3D dels balladors" style="touch-action:pan-y"></canvas>
-        <div class="hint" style="margin-top:4px">Arrossega la vista per girar la càmera.</div>
+        <div class="camel"><label for="camElR">Alçada de la càmera</label><input type="range" id="camElR" min="0" max="85" step="1" aria-label="Alçada de la càmera"><span class="hint">Arrossega la vista per girar-la.</span></div>
       </div>
     </div>
     <div class="card now" id="nowCard"></div>
@@ -327,10 +328,10 @@ const KEY = 'bastoners.v1';
 /* Balladors per parelles: A1..An (fila de dalt, mirant cap avall) i B1..Bn (fila de baix, mirant cap amunt) */
 const COLS=['c1','c2','c3','c4','c5','c6','c7','c8'];
 /* Colors per parella: el mateix to, fort per a l'A i clar per a la B */
-const PAIR_HUES=[[215,'Blau'],[2,'Vermell'],[135,'Verd'],[28,'Taronja'],[280,'Lila'],[178,'Turquesa'],[322,'Rosa'],[48,'Groc'],[245,'Indi'],[85,'Llima'],[350,'Gerd'],[195,'Cel']];
+const PAIR_HUES=[[2,'Vermell'],[135,'Verd'],[44,'Groc mostassa',70,42],[215,'Blau'],[280,'Lila'],[26,'Taronja',88,50],[322,'Rosa'],[178,'Turquesa'],[245,'Indi'],[85,'Llima'],[350,'Gerd'],[195,'Cel']];
 function pairColor(k,ab){ return 'p'+(((k-1)%PAIR_HUES.length)+1)+ab; }
-(function(){ let l='', d=''; PAIR_HUES.forEach(([h],i)=>{ const k=i+1;
-    l+=`--p${k}a:hsl(${h} 62% 36%);--p${k}b:hsl(${h} 72% 70%);`; d+=`--p${k}a:hsl(${h} 58% 46%);--p${k}b:hsl(${h} 75% 76%);`; });
+(function(){ let l='', d=''; PAIR_HUES.forEach(([h,,sa,la],i)=>{ const k=i+1;
+    l+=`--p${k}a:hsl(${h} ${sa||62}% ${la||36}%);--p${k}b:hsl(${h} 36% 68%);`; d+=`--p${k}a:hsl(${h} ${sa||58}% ${la?la+4:46}%);--p${k}b:hsl(${h} 38% 72%);`; });
   const st=document.createElement('style');
   st.textContent=`:root{${l}} @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${d}}} :root[data-theme="dark"]{${d}}`;
   document.head.appendChild(st); })();
@@ -354,6 +355,7 @@ function relayoutCircle(b){ // balls generats (p. ex. L'Esquerrana): es refan pe
   if(b.generador!=='esquerrana') return; const n=b.balladors.filter(d=>/^A\d+$/.test(d.id)).length, nb=esquerranaBall(n);
   const old={}; b.balladors.forEach(d=>old[d.id]=d); b.balladors=nb.balladors.map(d=>old[d.id]?Object.assign({},d,{nom:old[d.id].nom,color:old[d.id].color}):d);
   b.figures=nb.figures; }
+function ESQ_AUDIO(){ return {id:'aud_esq', nom:'Música', src:'esquerrana.mp3', inici:3.2, bpm:106, previ:3.2, beats:[-0.0,0.58,1.15,1.73,2.31,2.88,3.46,4.04,4.62,5.2,5.79,6.37,6.95,7.52,8.1,8.67,9.23,9.8,10.37,10.94,11.5,12.06,12.62,13.18,13.74,14.3,14.86,15.4,15.96,16.51,17.07,17.63,18.2,18.77,19.34,19.92,20.49,21.07,21.65,22.23,22.82,23.4,23.99,24.58,25.16,25.75,26.35,26.94,27.52,28.1,28.67,29.24,29.8,30.36,30.92,31.47,32.02,32.57,33.12,33.67,34.21,34.76,35.31,35.86,36.4,36.94,37.48,38.03,38.58,39.13,39.68,40.23,40.77,41.31,41.86,42.41,42.97,43.52,44.06,44.61,45.16,45.71,46.27,46.83,47.4,47.96,48.53,49.11,49.69,50.27,50.85,51.43,52.0,52.57,53.15,53.73,54.31,54.89,55.46,56.04,56.61,57.17,57.74,58.31,58.89,59.46,60.03,60.61,61.18,61.75,62.32,62.89,63.46,64.03,64.6,65.18,65.76,66.34,66.92,67.49,68.06,68.63,69.2,69.76,70.33,70.9,71.47,72.04,72.61,73.19,73.77,74.35,74.93,75.51,76.09,76.68,77.26,77.85,78.44,79.03,79.63,80.22,80.82,81.41,82.01,82.6,83.18,83.76,84.33,84.9,85.47,86.03,86.59,87.16,87.72,88.28,88.84,89.39,89.95,90.51,91.08,91.64,92.2,92.78,93.35,93.93,94.5,95.08,95.66,96.24,96.83,97.41,98.0,98.6,99.19,99.79,100.38,100.97,101.56,102.14,102.72,103.29,103.86,104.43,105.02,105.6,106.17,106.74,107.31,107.88,108.44,109.0,109.56,110.12,110.68,111.23,111.78,112.34,112.9,113.46,114.02,114.58,115.13,115.68,116.23,116.77,117.32,117.87,118.42,118.98,119.53,120.09,120.65,121.2,121.76,122.32,122.88,123.43,123.99,124.55,125.12,125.68,126.24,126.8,127.36,127.91,128.46,129.01,129.56,130.11,130.68,131.24,131.81,132.38,132.94,133.5,134.06,134.62,135.18,135.74,136.31,136.88,137.44,138.01,138.59,139.16,139.72,140.28,140.84,141.4,141.96,142.53,143.11,143.68]}; }
 function esquerranaBall(n=6){ const W=12, H=8, {ds}=pairDancers(n,W,H), pos=circlePos(n,W,H);
   const F=(nom,o)=>Object.assign({id:uid('f'), acte:1, nom, nota:'', dubtos:false, mou:{temps:0,picades:0}, pos:{}, seq:[], seqPer:{}}, o);
   const still=p=>{ const q={}; for(const k in p){ q[k]={x:p[k].x,y:p[k].y,o:p[k].o}; } return q; };
@@ -388,7 +390,7 @@ function esquerranaBall(n=6){ const W=12, H=8, {ds}=pairDancers(n,W,H), pos=circ
     figs.push(F('Gir amb 3 tocs a terra, parella nova'+ronda, {pos:at((k,j)=>[P(outer(j2(k)),outer(j2(k)).o,{costat:'dreta'}), P(inner(k),inner(k).o,{costat:'dreta'})]), mou:{temps:3,picades:3}, dubtos:r===n-1,
       nota: r===0 ? "Gir a la dreta amb 3 tocs a terra per quedar cara a cara amb la B nova." : (r===n-1 ? "Les A tornen a ser amb la seva parella inicial. Pendent: com s'acaba el ball." : '')}));
   }
-  return {id:'ball_esquerrana', nom:"L'Esquerrana", exemple:true, versioExemple:9, generador:'esquerrana', musica:{bpm:106,tempsPerCompas:2,audios:[{id:'aud_esq', nom:'Música', src:'esquerrana.mp3', inici:3.26, bpm:106, previ:3.26}],audioActiu:'aud_esq'}, espai:{ample:W,fons:H}, balladors:ds, formacio:'cercle',
+  return {id:'ball_esquerrana', nom:"L'Esquerrana", exemple:true, versioExemple:9, generador:'esquerrana', musica:{bpm:106,tempsPerCompas:2,audios:[ESQ_AUDIO()],audioActiu:'aud_esq'}, espai:{ample:W,fons:H}, balladors:ds, formacio:'cercle',
     figures:figs}; }
 function freshDb(){ const b=exampleBall(); return {migEsq:true, balls:[b, esquerranaBall()], cops:clone(COPS0), combis:clone(COMBIS0), curId:b.id, me:''}; }
 function AUDIO_ARBECA(){ return {id:'aud_assaig', nom:'Assaig (vídeo)', src:'ball-arbeca.mp3', inici:10.22, bpm:113.6, previ:8.7}; }
@@ -401,6 +403,7 @@ function loadDb(){ try{ const s=JSON.parse(localStorage.getItem(KEY)); if(s && A
   if(!s.migFinal){ s.migFinal=true; (s.balls||[]).forEach(b=>{ if(b.id==='ball_arbeca' && b.exemple) b.figures.forEach(f=>{ if(f.nom==='Picada final' && f.seq && f.seq[f.seq.length-1]==='el creuat'){ f.seq=f.seq.concat(['pausa','pausa']); if(f.nota) f.nota=f.nota.replace('Fi del ball.',"El ball s'acaba quiets en posició de doble."); } }); }); }
   if(!s.migEsq){ s.migEsq=true; if(!s.balls.some(b=>b.id==='ball_esquerrana')) s.balls.push(esquerranaBall()); }
   { const i=s.balls.findIndex(b=>b.id==='ball_esquerrana' && b.exemple && (b.versioExemple||1)<9); if(i>=0){ const e=esquerranaBall(Math.max(2,s.balls[i].balladors.filter(d=>/^A\d+$/.test(d.id)).length)); e.repartiments=s.balls[i].repartiments; s.balls[i]=e; } }
+  if(!s.migEsqMap){ s.migEsqMap=true; (s.balls||[]).forEach(b=>((b.musica&&b.musica.audios)||[]).forEach((a,i,arr)=>{ if(a.id==='aud_esq' && a.src==='esquerrana.mp3') arr[i]=Object.assign(ESQ_AUDIO(),{nom:a.nom}); })); }
   if(!s.migColPar){ s.migColPar=true; (s.balls||[]).forEach(b=>b.balladors.forEach(d=>{ const m=/^([AB])(\d+)$/.exec(d.id); if(m) d.color=pairColor(+m[2], m[1]==='A'?'a':'b'); })); }
   if(!s.migSolapa){ s.migSolapa=true; (s.balls||[]).forEach(b=>{ if(b.id==='ball_arbeca' && b.exemple) b.figures.forEach(f=>{ if(/^Intercanvi/.test(f.nom) && f.mou && +f.mou.temps===2 && !+f.mou.picades){ f.mou.temps=1; f.mou.solapa=1; } }); }); } (s.balls||[]).forEach(b=>((b.musica&&b.musica.audios)||[]).forEach(a=>{ if(a.id==='aud_assaig' && a.inici===7.06) a.inici=10.22; if(a.id==='aud_assaig' && a.previ==null) a.previ=8.7; if(a.id==='aud_infantil' && a.inici===10.94){ a.inici=3.24; a.previ=3.24; } })); (s.balls||[]).forEach(b=>{ if(b.id==='ball_arbeca' && b.exemple && b.musica && b.musica.audios && !b.musica.audios.some(a=>a.id==='aud_infantil') && !s.migInf){ b.musica.audios.push(AUDIO_INFANTIL()); } }); s.migInf=true; COMBIS0.forEach(c=>{ if(!s.combis.some(k=>k.id===c.id)) s.combis.push(clone(c)); }); return s; } }catch(e){} return freshDb(); }
 let db = loadDb();
@@ -692,21 +695,26 @@ function cssVar(n){ return getComputedStyle(document.documentElement).getPropert
 
 /* ---------- càmera de la vista 3D ---------- */
 const CAMS=[['jutges','Jutges',0],['diag','Diagonal',35],['esq','Esquerra',-90],['dta','Dreta',90],['darrere','Darrere',180],['meva','Darrere meu',null]];
-let camMode='jutges', camAng=0, camDrag=null, camAnim=0;
-try{ const c=JSON.parse(localStorage.getItem(KEY+'.cam')||'null'); if(c){ camMode=c.m||'jutges'; camAng=+c.a||0; } }catch(_){}
+let camMode='jutges', camAng=0, camEl=12, camDrag=null, camAnim=0;
+try{ const c=JSON.parse(localStorage.getItem(KEY+'.cam')||'null'); if(c){ camMode=c.m||'jutges'; camAng=+c.a||0; if(c.e!=null) camEl=+c.e; } }catch(_){}
 function camTarget(S){ const c=CAMS.find(k=>k[0]===camMode); if(!c) return camAng;
   if(c[2]!==null) return c[2];
   const me=db.me && S && S.st[db.me]; return me ? me.o+180 : 0; }
 function renderCamSel(){ const el=document.getElementById('camSel'); if(!el) return;
   el.innerHTML=CAMS.filter(c=>c[0]!=='meva'||db.me).map(([k,n])=>`<button type="button" data-cam="${k}" aria-pressed="${camMode===k}">${n}</button>`).join('') + (camMode==='lliure'?'<button type="button" aria-pressed="true" disabled>Lliure</button>':''); }
-function saveCam(){ try{ localStorage.setItem(KEY+'.cam', JSON.stringify({m:camMode,a:camAng})); }catch(_){} }
+function saveCam(){ try{ localStorage.setItem(KEY+'.cam', JSON.stringify({m:camMode,a:camAng,e:camEl})); }catch(_){} }
 function animCam(){ if(camAnim) return; const step=()=>{ const S=stateAt(Math.min(t,total-0.0001)), tg=camTarget(S), d=wrap180(tg-camAng);
     if(camMode==='lliure' || Math.abs(d)<0.5){ if(camMode!=='lliure') camAng=tg; camAnim=0; drawFront(S); return; }
     camAng+=d*0.18; drawFront(S); camAnim=requestAnimationFrame(step); }; camAnim=requestAnimationFrame(step); }
 document.getElementById('camSel').addEventListener('click',e=>{ const b=e.target.closest('[data-cam]'); if(!b) return; camMode=b.dataset.cam; renderCamSel(); saveCam(); animCam(); });
-cv.addEventListener('pointerdown',e=>{ camDrag={x:e.clientX,a:camAng}; cv.setPointerCapture(e.pointerId); });
-cv.addEventListener('pointermove',e=>{ if(!camDrag) return; const dx=e.clientX-camDrag.x; if(Math.abs(dx)<3 && camMode!=='lliure') return;
-  if(camMode!=='lliure'){ camMode='lliure'; renderCamSel(); } camAng=camDrag.a - dx*0.5; drawFront(stateAt(Math.min(t,total-0.0001))); });
+cv.addEventListener('pointerdown',e=>{ camDrag={x:e.clientX,y:e.clientY,a:camAng,e:camEl,mouse:e.pointerType==='mouse'}; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointermove',e=>{ if(!camDrag) return; const dx=e.clientX-camDrag.x; if(Math.abs(dx)<3 && Math.abs(e.clientY-camDrag.y)<3 && camMode!=='lliure') return;
+  if(Math.abs(dx)>=3 || camMode==='lliure'){ if(camMode!=='lliure'){ camMode='lliure'; renderCamSel(); } camAng=camDrag.a - dx*0.5; }
+  if(camDrag.mouse) setCamEl(camDrag.e + (e.clientY-camDrag.y)*0.3); else drawFront(stateAt(Math.min(t,total-0.0001))); });
+function setCamEl(v){ camEl=Math.max(0,Math.min(85,Math.round(v))); const r=document.getElementById('camElR'); if(r) r.value=camEl; drawFront(stateAt(Math.min(t,total-0.0001))); }
+document.getElementById('camElR').value=camEl;
+document.getElementById('camElR').addEventListener('input',e=>setCamEl(+e.target.value));
+document.getElementById('camElR').addEventListener('change',saveCam);
 const camEnd=()=>{ if(camDrag){ camDrag=null; saveCam(); } };
 cv.addEventListener('pointerup',camEnd); cv.addEventListener('pointercancel',camEnd);
 
@@ -725,15 +733,21 @@ function drawFront(S){
   // enquadra tots els balladors de tot el ball (càmera estable)
   let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
   pts.forEach(p=>{ const [rx,ry]=rot(p.x,p.y); x0=Math.min(x0,rx); x1=Math.max(x1,rx); y0=Math.min(y0,ry); y1=Math.max(y1,ry); });
-  const camY=y1+D, cx=(x0+x1)/2, Wv=Math.max(3,x1-x0+1.6), dN=camY-y1, dF=camY-y0;
-  const F=Math.min(0.94*w*dN/Wv, (h-30)/((2.1-camZ)/dN + camZ/dN + 0.2));
-  const hY = h-14 - F*camZ/dN;
-  const projR=(rx,ry,z)=>{ const dep=Math.max(0.5,camY-ry); return [w/2+F*(rx-cx)/dep, hY+F*(camZ-z)/dep, dep]; };
+  // càmera en òrbita: camEl = elevació (0° = a l'altura dels ulls, 90° = des de dalt)
+  const cx=(x0+x1)/2, cyc=(y0+y1)/2, el=camEl*Math.PI/180, ce=Math.cos(el), se=Math.sin(el);
+  const Rd=(y1-y0)/2+D+1.2*se, zT=0.9*(1-se*0.8), pcY=cyc+Rd*ce, pcZ=zT+Rd*se+camZ*(1-se)*0.4;
+  const depR=(ry,z)=>(pcY-ry)*ce+(pcZ-z)*se;
+  const raw=(rx,ry,z)=>{ const dep=Math.max(0.3,depR(ry,z)); return [(rx-cx)/dep, -((ry-pcY)*-se+(z-pcZ)*ce)/dep, dep]; };
+  // escala i centrat per encabir tots els balladors (de terra fins a 2,1 m)
+  let u0=1e9,u1=-1e9,v0=1e9,v1=-1e9;
+  [[x0-.6,y0-.3],[x1+.6,y0-.3],[x0-.6,y1+.4],[x1+.6,y1+.4]].forEach(([a,b])=>[0,2.0].forEach(z=>{ const q=raw(a,b,z); u0=Math.min(u0,q[0]);u1=Math.max(u1,q[0]);v0=Math.min(v0,q[1]);v1=Math.max(v1,q[1]); }));
+  const F=Math.min(0.96*w/(u1-u0), (h-20)/(v1-v0)), ou=w/2-F*(u0+u1)/2, ov=h/2-F*(v0+v1)/2;
+  const projR=(rx,ry,z)=>{ const q=raw(rx,ry,z); return [ou+F*q[0], ov+F*q[1], q[2]]; };
   const proj=(x,y,z)=>{ const [rx,ry]=rot(x,y); return projR(rx,ry,z); };
   // segment de terra retallat davant la càmera
-  const segFloor=(xa,ya,xb,yb)=>{ let [ax,ay]=rot(xa,ya), [bx,by]=rot(xb,yb); const lim=camY-0.8;
-    if(ay>lim && by>lim) return null;
-    if(ay>lim){ const k=(lim-by)/(ay-by); ax=bx+(ax-bx)*k; ay=lim; } else if(by>lim){ const k=(lim-ay)/(by-ay); bx=ax+(bx-ax)*k; by=lim; }
+  const segFloor=(xa,ya,xb,yb)=>{ let [ax,ay]=rot(xa,ya), [bx,by]=rot(xb,yb); const lim=0.8, da=depR(ay,0), db_=depR(by,0);
+    if(da<lim && db_<lim) return null;
+    if(da<lim){ const k=(lim-db_)/(da-db_); ax=bx+(ax-bx)*k; ay=by+(ay-by)*k; } else if(db_<lim){ const k=(lim-da)/(db_-da); bx=ax+(bx-ax)*k; by=ay+(by-ay)*k; }
     return [projR(ax,ay,0), projR(bx,by,0)]; };
   const C={floor:cssVar('--floor'), line:cssVar('--line'), grid:cssVar('--grid'), ink:cssVar('--ink'), wood:cssVar('--wood'), faixa:cssVar('--faixa'), muted:cssVar('--muted'), surface:cssVar('--surface')};
   // terra de l'escenari
@@ -757,7 +771,7 @@ function drawFront(S){
     const crouch=lerp(1, pose.crouch||1, amt), jump=(pose.jump||0)*amt, step=(pose.step||0)*amt, leg=(pose.leg||0)*amt;
     const W3=(f,r,z)=>proj(s.x+fwd[0]*f+rgt[0]*r, s.y+fwd[1]*f+rgt[1]*r, z);
     const col=cssVar('--'+(d.color||'c1'));
-    const dep=Math.max(0.5,camY-rot(s.x,s.y)[1]), sc=F/dep;
+    const dep=Math.max(0.5,depR(rot(s.x,s.y)[1],1)), sc=F/dep;
     const ba=bend*Math.PI/4, hip=(0.92-0.14*bend)*crouch+jump, sh=hip+0.5*Math.cos(ba)*crouch, shF=0.5*Math.sin(ba), head=hip+0.7*Math.cos(ba)*crouch, hdF=0.7*Math.sin(ba);
     if(d.id===db.me){ const p=W3(0,0,0); ctx.strokeStyle=C.faixa; ctx.lineWidth=2.5; ctx.beginPath(); ctx.ellipse(p[0],p[1],sc*.42,sc*.1,0,0,Math.PI*2); ctx.stroke(); }
     const line=(a,b,lw,stroke)=>{ ctx.strokeStyle=stroke; ctx.lineWidth=lw; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke(); };
@@ -1114,6 +1128,13 @@ async function idbPut(k,v){ const d=await idbOpen(); return new Promise((ok,ko)=
 async function idbGet(k){ const d=await idbOpen(); return new Promise((ok,ko)=>{ const r=d.transaction('f').objectStore('f').get(k); r.onsuccess=()=>ok(r.result); r.onerror=()=>ko(r.error); }); }
 async function idbDel(k){ try{ const d=await idbOpen(); d.transaction('f','readwrite').objectStore('f').delete(k); }catch(_){} }
 function curAudio(){ const m=ball.musica||{}; return (m.audios||[]).find(a=>a.id===m.audioActiu); }
+// Mapa de temps: si l'àudio té 'beats' (segons des de l'inici de cada temps), segueix el tempo real de la gravació.
+function beatToAud(a,bt){ const B=a&&a.beats, i0=+a.inici||0; if(!B||B.length<2) return i0+bt*60/bpmNow();
+  const n=B.length, k=Math.floor(bt); if(k<0) return i0+B[0]+bt*(B[1]-B[0]); if(k>=n-1) return i0+B[n-1]+(bt-(n-1))*(B[n-1]-B[n-2]);
+  return i0+B[k]+(bt-k)*(B[k+1]-B[k]); }
+function audToBeat(a,at){ const B=a&&a.beats, x=at-(+a.inici||0); if(!B||B.length<2) return x*bpmNow()/60;
+  const n=B.length; if(x<B[0]) return (x-B[0])/(B[1]-B[0]); if(x>=B[n-1]) return n-1+(x-B[n-1])/(B[n-1]-B[n-2]);
+  let lo=0,hi=n-1; while(hi-lo>1){ const md=(lo+hi)>>1; if(B[md]<=x) lo=md; else hi=md; } return lo+(x-B[lo])/(B[hi]-B[lo]); }
 function bpmNow(){ const a=curAudio(); return (a&&+a.bpm) || ball.musica.bpm || 96; }
 function audOn(){ return !!curAudio() && !!aud.src && aud.readyState>=1; }
 async function loadAudio(){ const a=curAudio(); aud.pause(); if(audUrl){ URL.revokeObjectURL(audUrl); audUrl=''; }
@@ -1123,7 +1144,7 @@ async function loadAudio(){ const a=curAudio(); aud.pause(); if(audUrl){ URL.rev
   if(playing) syncAudio(true); }
 function syncAudio(seek){ const a=curAudio(); if(!a || !aud.getAttribute('src')) return;
   if(!playing){ aud.pause(); return; }
-  if(seek || aud.paused){ aud.currentTime=Math.max(0,(+a.inici||0)+t*60/bpmNow() - (t<0.05 ? (+a.previ||0) : 0)); } // des del principi: sona el compte previ
+  if(seek || aud.paused){ aud.currentTime=Math.max(0,beatToAud(a,t) - (t<0.05 ? (+a.previ||0) : 0)); } // des del principi: sona el compte previ
   if(aud.paused) aud.play().catch(()=>{}); loopT=t; }
 function renderAudSel(){ const el=document.getElementById('audSel'), m=ball.musica;
   el.innerHTML=`<option value="">Cap (metrònom)</option>`+(m.audios||[]).map(a=>`<option value="${esc(a.id)}" ${a.id===m.audioActiu?'selected':''}>${esc(a.nom)}</option>`).join('');
@@ -1141,7 +1162,7 @@ document.getElementById('btnBack').onclick=()=>stepBeat(-1);
 document.getElementById('btnFwd').onclick=()=>stepBeat(1);
 scrub.oninput=()=>{ t=+scrub.value; if(t>=total) t=total-0.001; frame(true); };
 scrub.onchange=()=>renderPanel();
-bpmEl.onchange=()=>{ const v=Math.max(30,Math.min(240,+bpmEl.value||96)), a=curAudio(); if(a) a.bpm=v; else ball.musica.bpm=v; bpmEl.value=v; save(); syncAudio(true); if(tab==='ball') renderPanel(); };
+bpmEl.onchange=()=>{ const v=Math.max(30,Math.min(240,+bpmEl.value||96)), a=curAudio(); if(a){ a.bpm=v; delete a.beats; } else ball.musica.bpm=v; bpmEl.value=v; save(); syncAudio(true); if(tab==='ball') renderPanel(); };
 chkNames.onchange=()=>frame(true); document.getElementById('repSel').onchange=e=>applyRep(e.target.value); chkPaths.onchange=()=>frame(true);
 document.addEventListener('keydown',e=>{ if(e.target.closest('input,textarea,select')) return; if(e.code==='Space'){ e.preventDefault(); togglePlay(); } if(e.key==='ArrowRight') stepBeat(1); if(e.key==='ArrowLeft') stepBeat(-1); if(e.key==='PageDown') jumpFig(segAt(t).i+1); if(e.key==='PageUp') jumpFig(segAt(t).i-1); });
 
@@ -1214,7 +1235,7 @@ function loop(ts){
     if(loopT!==null && Math.abs(t-loopT)>0.01) syncAudio(true); // s'ha mogut la posició (barra, botons)
     if(a && aud.getAttribute('src') && !aud.ended){
       // l'àudio mana: mentre encara no sona (carregant), l'animació s'espera
-      if(!aud.paused && aud.readyState>=3 && !aud.seeking) t=Math.max(0,(aud.currentTime-(+a.inici||0))*bpmNow()/60);
+      if(!aud.paused && aud.readyState>=3 && !aud.seeking) t=Math.max(0,audToBeat(a,aud.currentTime));
     } else t+=dt*bpmNow()/60;
     const b=Math.floor(t);
     if(b!==lastBeat){ lastBeat=b; if(t<total) click(b%(ball.musica.tempsPerCompas||2)===0); }
