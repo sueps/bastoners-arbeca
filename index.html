@@ -56,6 +56,8 @@ label{display:inline-flex;gap:6px;align-items:center}
 .audrow input[data-a=nom]{flex:1;min-width:120px}
 .filebtn span{display:inline-block;padding:6px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--surface)}
 .audwrap select{max-width:150px}
+.recbar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:50;display:flex;gap:10px;align-items:center;background:#1f2a1c;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.3);font-size:14px}
+.recbar a{color:#fff;font-weight:700}
 .camsel{display:flex;gap:4px;flex-wrap:wrap}
 .camsel button{font:inherit;font-size:12px;padding:4px 9px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
 .camsel button[aria-pressed=true]{background:var(--faixa);border-color:var(--faixa);color:var(--surface);font-weight:600}
@@ -139,7 +141,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     <button id="btnUndo" hidden disabled title="Desfés l'últim canvi (Ctrl+Z)">↶ Desfés</button>
     <button id="btnRedo" hidden disabled title="Refés (Ctrl+Shift+Z)" aria-label="Refés">↷</button>
     <button id="btnEdit" aria-pressed="false">Edita</button>
+    <button id="btnRec" title="Exporta un vídeo amb la vista zenital i la 3D">⤓ Vídeo</button>
   </div>
+  <div id="recBar" class="recbar" hidden><span id="recTxt">Gravant…</span><button id="recStop">Atura</button></div>
 </header>
 <div class="transport" id="transport">
   <button id="btnPrev" aria-label="Figura anterior">⏮</button>
@@ -1067,6 +1071,53 @@ document.addEventListener('keydown',e=>{ if(e.target.closest('input,textarea,sel
 function setEditing(on){ editing=on; document.getElementById('btnEdit').setAttribute('aria-pressed', on); snapTake(); renderUndo(); if(on){ togglePlay(false); snapToFigure(segAt(t).i); tab='edit'; } else sel=new Set(); renderTabs(); renderPanel(); frame(true); }
 document.getElementById('btnEdit').onclick=()=>setEditing(!editing);
 document.getElementById('btnUndo').onclick=()=>undoRedo(false);
+/* ---------- exportar vídeo (grava en temps real les dues vistes + l'àudio) ---------- */
+let rec=null, audGraph=null;
+function zenImage(){ // SVG zenital -> imatge, amb els estils i colors resolts
+  const cl=zen.cloneNode(true), cs=getComputedStyle(document.documentElement), bb=zen.getBoundingClientRect();
+  let vars=''; for(const sh of document.styleSheets){ try{ for(const r of sh.cssRules){ if(r.style) for(const n of r.style){ if(n.startsWith('--')) vars+=`${n}:${cs.getPropertyValue(n)};`; } } }catch(_){} }
+  const css=[...document.querySelectorAll('style')].map(x=>x.textContent).join('\n');
+  cl.setAttribute('xmlns','http://www.w3.org/2000/svg'); cl.setAttribute('width',bb.width); cl.setAttribute('height',bb.height);
+  cl.setAttribute('style',vars+'font-family:system-ui,sans-serif');
+  const st=document.createElementNS(NS,'style'); st.textContent=css; cl.insertBefore(st,cl.firstChild);
+  return new Promise(ok=>{ const im=new Image(); im.onload=()=>ok(im); im.onerror=()=>ok(null);
+    im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(new XMLSerializer().serializeToString(cl)); }); }
+function pickMime(){ for(const m of ['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm']) if(window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m; return ''; }
+async function startRec(){
+  if(rec) return; const mime=pickMime(); if(!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream){ alertRec("Aquest navegador no permet gravar vídeo."); return; }
+  if(editing) setEditing(false);
+  const W=1280,H=720, oc=document.createElement('canvas'); oc.width=W; oc.height=H; const g=oc.getContext('2d');
+  const stream=oc.captureStream(30);
+  if(curAudio() && aud.getAttribute('src')){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); await actx.resume();
+      if(!audGraph){ const src=actx.createMediaElementSource(aud), dst=actx.createMediaStreamDestination(); src.connect(actx.destination); src.connect(dst); audGraph=dst; }
+      audGraph.stream.getAudioTracks().forEach(tr=>stream.addTrack(tr)); }catch(e){} }
+  const chunks=[], mr=new MediaRecorder(stream, mime?{mimeType:mime, videoBitsPerSecond:4e6}:{});
+  mr.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
+  rec={mr, done:false, zimg:null, busy:false};
+  mr.onstop=()=>{ const type=mr.mimeType||mime||'video/webm', ext=/mp4/.test(type)?'mp4':'webm', blob=new Blob(chunks,{type});
+    const url=URL.createObjectURL(blob), name=(ball.nom||'ball').replace(/[^\w\-àèéíòóúïüç' ]+/gi,'').trim().replace(/\s+/g,'-')+'.'+ext;
+    document.getElementById('recTxt').innerHTML=`Vídeo llest: <a href="${url}" download="${esc(name)}">descarrega'l</a>`; const b=document.getElementById('recStop'); b.textContent='Tanca'; b.onclick=()=>{ document.getElementById('recBar').hidden=true; }; rec=null; };
+  const bar=document.getElementById('recBar'); bar.hidden=false; document.getElementById('recStop').textContent='Atura'; document.getElementById('recStop').onclick=()=>stopRec();
+  t=0; frame(true); mr.start(500); togglePlay(true);
+  const draw=()=>{ if(!rec) return;
+    if(!rec.busy){ rec.busy=true; zenImage().then(im=>{ if(im) rec&&(rec.zimg=im); if(rec) rec.busy=false; }); }
+    const S=stateAt(Math.min(t,total-0.0001)), f=S.seg.f, tpc=ball.musica.tempsPerCompas||2, bt=Math.floor(t);
+    g.fillStyle=cssVar('--bg')||'#f4f2ec'; g.fillRect(0,0,W,H);
+    g.fillStyle='#1f2a1c'; g.fillRect(0,0,W,56); g.fillStyle='#fff'; g.font='600 24px system-ui,sans-serif'; g.textBaseline='middle';
+    g.textAlign='left'; g.fillText(((f.acte?'Acte '+f.acte+' · ':'')+f.nom.replace(/ · .*$/,'')).slice(0,60),20,28);
+    g.textAlign='right'; g.fillText(t<=0.001?'Preparats…':'Compàs '+(Math.floor(bt/tpc)+1),W-20,28);
+    const fit=(im,x,y,w,h)=>{ const iw=im.width||im.naturalWidth, ih=im.height||im.naturalHeight; if(!iw||!ih) return; const k=Math.min(w/iw,h/ih); g.drawImage(im,x+(w-iw*k)/2,y+(h-ih*k)/2,iw*k,ih*k); };
+    g.fillStyle=cssVar('--surface')||'#fff'; g.fillRect(12,68,616,640); g.fillRect(652,68,616,640);
+    if(rec.zimg) fit(rec.zimg,20,76,600,624);
+    fit(cv,660,76,600,624);
+    document.getElementById('recTxt').textContent=`Gravant… ${Math.round(100*t/total)}%`;
+    if(!playing && t>0.5){ stopRec(); return; }
+    requestAnimationFrame(draw); };
+  requestAnimationFrame(draw);
+}
+function stopRec(){ if(!rec) return; const r=rec; togglePlay(false); setTimeout(()=>{ try{ r.mr.stop(); }catch(_){ } }, 600); }
+function alertRec(msg){ const bar=document.getElementById('recBar'); bar.hidden=false; document.getElementById('recTxt').textContent=msg; const b=document.getElementById('recStop'); b.textContent='Tanca'; b.onclick=()=>{ bar.hidden=true; }; }
+document.getElementById('btnRec').onclick=startRec;
 document.getElementById('btnRedo').onclick=()=>undoRedo(true);
 document.addEventListener('keydown',e=>{ if(!editing || !(e.ctrlKey||e.metaKey) || e.target.closest('input,textarea')) return; const k=e.key.toLowerCase(); if(k==='z'){ e.preventDefault(); undoRedo(e.shiftKey); } else if(k==='y'){ e.preventDefault(); undoRedo(true); } });
 
