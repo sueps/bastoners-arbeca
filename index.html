@@ -1441,8 +1441,8 @@ document.fonts && document.fonts.ready.then(()=>frame(true));
 })();
 </script>
 <script>
-(()=>{const b=document.getElementById('btnPassos'),K='bastoners.nopassos';
-const set=on=>{document.body.classList.toggle('nopassos',on);b.setAttribute('aria-pressed',on);b.textContent=on?'☰ Mostra passos':'☰ Amaga passos';try{localStorage.setItem(K,on?'1':'')}catch(e){}window.dispatchEvent(new Event('resize'))};
-let on=false;try{on=localStorage.getItem(K)==='1'}catch(e){}set(on);
+(()=>{const b=document.getElementById('btnPassos'),K='bastoners.passos';
+const set=on=>{document.body.classList.toggle('nopassos',on);b.setAttribute('aria-pressed',on);b.textContent=on?'☰ Mostra passos':'☰ Amaga passos';try{localStorage.setItem(K,on?'amaga':'mostra')}catch(e){}window.dispatchEvent(new Event('resize'))};
+let on=true;try{on=localStorage.getItem(K)!=='mostra'}catch(e){}set(on);
 b.addEventListener('click',()=>set(!document.body.classList.contains('nopassos')));})();
 </script>
