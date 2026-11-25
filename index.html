@@ -551,7 +551,7 @@ function stateAt(tt){
       const b=local-seg.move, sq=seg.seqs[d.id], bi=sq.findIndex(q=>b>=q.t0 && b<q.t0+(q.dur||1)), it=sq[bi];
       act = it ? {type:'cop', it, frac:(b-it.t0)/(it.dur||1), idx:bi} : {type:'repos'};
       // pausa: es manté la posició de l'últim cop (p. ex. el doble)
-      if(it){ let j=bi; while(j>=0 && sq[j].c==='pausa') j--; if(it.c==='pausa' && j>=0) act.hold=sq[j]; const nx=sq[bi+1]; if(it.c!=='pausa' && nx && nx.c==='pausa') act.holdNext=true; }
+      if(it){ let j=bi; while(j>=0 && sq[j].c==='pausa') j--; if(it.c==='pausa' && j>=0) act.hold=sq[j]; const nx=sq[bi+1]; if(it.c!=='pausa' && nx && nx.c==='pausa') act.holdNext=true; act.prevIt=bi>0?sq[bi-1]:null; act.nextIt=nx||null; }
     }
     out[d.id]={x,y,o,act};
   });
@@ -669,6 +669,7 @@ const POSES = {
   mig:     {R:P(.35,.18,1.0), Rd:P(.3,-.9,.3), L:LM, Ld:LMd},
   dalt:    {R:P(.3,.12,1.75), Rd:P(.55,-.2,.8), L:LM, Ld:LMd},
   doble:   {R:P(.35,.12,1.4), Rd:P(.2,-.7,.7), L:P(.35,-.12,1.4), Ld:P(.2,.7,.7)},
+  ajupit:  {R:P(.3,.16,.62), Rd:P(.4,0,-1), L:P(.3,-.16,.62), Ld:P(.4,0,-1), crouch:.6}, // entre dos cops ajupits no s'aixeca
   sotacama:{R:P(.22,.08,.6), Rd:P(1,-.22,.02), L:LM, Ld:LMd, leg:1} // cama esquerra aixecada (genoll endavant), bastó dret per sota la cuixa
 };
 function poseFor(act){
@@ -691,9 +692,19 @@ function poseFor(act){
     const k=Math.sin(Math.PI*Math.min(1,f/.55));
     p=Object.assign({}, p, {R:[p.R[0]+.08*k, p.R[1]-.13*k, p.R[2]+.03*k], L:[p.L[0]+.08*k, p.L[1]+.13*k, p.L[2]+.03*k]});
   }
+  // cops ajupits seguits (terra, davant, terra…): entre l'un i l'altre es queden ajupits, no tornen al mig
+  const low=c=>!!(c && POSES[c.c] && POSES[c.c].crouch);
+  if(p.crouch && (low(act.prevIt) || low(act.nextIt))){
+    const A=POSES.ajupit, aIn = low(act.prevIt) ? (f<.3?f/.3:1) : null, aOut = low(act.nextIt) && f>.8 ? 1-(f-.8)/.2 : null;
+    if(aIn!==null && f<.3) return [mixPose(A,p,aIn),1];
+    if(aOut!==null) return [mixPose(A,p,aOut),1];
+    if(f<.3) return [p, f/.3];
+    return [p, f>.8 && !act.holdNext ? 1-(f-.8)/.2 : 1]; // s'aixeca del tot abans del cop següent
+  }
   const a = f<.3 ? f/.3 : (f>.8 && !act.holdNext ? 1-(f-.8)/.2*.5 : 1);
   return [p,a];
 }
+function mixPose(A,B,k){ const o={}; ['R','Rd','L','Ld'].forEach(h=>o[h]=lerp3(A[h],B[h],k)); o.crouch=lerp(A.crouch||1,B.crouch||1,k); return o; }
 const lerp=(a,b,k)=>a+(b-a)*k;
 const lerp3=(a,b,k)=>[lerp(a[0],b[0],k),lerp(a[1],b[1],k),lerp(a[2],b[2],k)];
 
